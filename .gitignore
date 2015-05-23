@@ -1,0 +1,13 @@
+*~
+*.o
+*.o_p
+*.hi
+dist
+*.swp
+cabal-dev/
+.hsenv/
+.cabal-sandbox/
+cabal.sandbox.config
+/vendor/
+.shelly/
+tarballs/
