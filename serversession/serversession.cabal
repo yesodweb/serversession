@@ -1,17 +1,17 @@
-name:            yesod-persistent-session
+name:            serversession
 version:         1.0
 license:         MIT
 license-file:    LICENSE
 author:          Felipe Lessa <felipe.lessa@gmail.com>
 maintainer:      Felipe Lessa <felipe.lessa@gmail.com>
-synopsis:        Server-side session backend using persistent.
-category:        Web, Yesod, Database
+synopsis:        Secure, modular server-side sessions.
+category:        Web
 stability:       Stable
 cabal-version:   >= 1.8
 build-type:      Simple
-homepage:        http://www.yesodweb.com/
-description:     API docs and the README are available at <http://www.stackage.org/package/yesod-persistent-session>
-extra-source-files: README.md ChangeLog.md
+homepage:        https://github.com/yesodweb/serversession
+description:     API docs and the README are available at <http://www.stackage.org/package/serversession>
+extra-source-files: README.md
 
 library
   hs-source-dirs: src
@@ -53,7 +53,6 @@ library
     TypeFamilies
   ghc-options:     -Wall
 
-
 source-repository head
   type:     git
-  location: https://github.com/yesodweb/yesod
+  location: https://github.com/yesodweb/serversession
