@@ -10,14 +10,14 @@ storage backend.  All session data is saved on the storage backend.
 The `serversession` package implements the core logic.  It needs
 to be paired up with two companion packages:
 
-  * /Backend (storage)/, in order to store the session data.
+  * _Backend (storage)_, in order to store the session data.
     Currently we support:
 
     * `serversession-backend-persistent`: Storage backend using
       `persistent`'s SQL backend.  Works with PostgreSQL, MySQL,
       SQLite.
 
-  * /Frontend/, bindings for your web framework of choice.
+  * _Frontend_, bindings for your web framework of choice.
     Currently we support:
 
     * `serversession-frontend-yesod`: Support the Yesod
