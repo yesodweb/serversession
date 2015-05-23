@@ -1,8 +1,10 @@
-module Yesod.Persist.Session.Internal.Sql
+-- | Internal module exposing the guts of the package.  Use at
+-- your own risk.  No API stability guarantees apply.
+module Web.ServerSession.Backend.Persistent.Internal.Impl
   ( PersistentSession(..)
   , PersistentSessionId
   , EntityField(..)
-  , persistentSessionDefs
+  , serverSessionDefs
   , psKey
   , toPersistentSession
   , fromPersistentSession
@@ -13,17 +15,18 @@ import Control.Monad (void)
 import Data.Pool (Pool)
 import Data.Time (UTCTime)
 import Data.Typeable (Typeable)
-import Database.Persist (PersistEntity(..), toPersistValue)
+import Database.Persist (PersistEntity(..))
 import Database.Persist.TH (mkPersist, mkSave, persistLowerCase, share, sqlSettings)
+import Web.ServerSession.Core
 
 import qualified Database.Persist as P
 import qualified Database.Persist.Sql as P
 
-import Yesod.Persist.Session.Internal.Types
+import Web.ServerSession.Backend.Persistent.Internal.Types
 
 
 share
-  [mkPersist sqlSettings, mkSave "persistentSessionDefs"]
+  [mkPersist sqlSettings, mkSave "serverSessionDefs"]
   [persistLowerCase|
     PersistentSession json
       key       SessionId         -- Session ID, primary key.
@@ -37,12 +40,7 @@ share
 
 -- | Generate a key to the entity from the session ID.
 psKey :: SessionId -> Key PersistentSession
-psKey = unwrap . keyFromValues . return . toPersistValue
-  where
-    unwrap (Left e) = error $
-      "Yesod.Persist.Session.Internal.Entities.psKey: " ++
-      "unexpected error from keyFromValues: " ++ show e
-    unwrap (Right k) = k
+psKey = PersistentSessionKey'
 
 
 -- | Convert from 'Session' to 'PersistentSession'.

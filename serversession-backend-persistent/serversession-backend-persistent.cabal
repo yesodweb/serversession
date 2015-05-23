@@ -1,16 +1,16 @@
-name:            serversession
+name:            serversession-backend-persistent
 version:         1.0
 license:         MIT
 license-file:    LICENSE
 author:          Felipe Lessa <felipe.lessa@gmail.com>
 maintainer:      Felipe Lessa <felipe.lessa@gmail.com>
-synopsis:        Secure, modular server-side sessions.
+synopsis:        Storage backend for serversession using persistent and an RDBMS.
 category:        Web
 stability:       Stable
 cabal-version:   >= 1.8
 build-type:      Simple
 homepage:        https://github.com/yesodweb/serversession
-description:     API docs and the README are available at <http://www.stackage.org/package/serversession>
+description:     API docs and the README are available at <http://www.stackage.org/package/serversession-backend-persistent-sql>
 extra-source-files: README.md
 
 library
@@ -21,20 +21,28 @@ library
     , base64-bytestring         == 1.0.*
     , bytestring
     , containers
-    , data-default
-    , nonce                     == 1.0.*
     , path-pieces
+    , persistent                == 2.1.*
+    , persistent-template       == 2.1.*
+    , resource-pool
     , text
     , time
-    , transformers
+
+    , serversession             == 1.0.*
   exposed-modules:
-    Web.ServerSession.Core
-    Web.ServerSession.Core.Internal
+    Web.ServerSession.Backend.Persistent
+    Web.ServerSession.Backend.Persistent.Internal.Impl
+    Web.ServerSession.Backend.Persistent.Internal.Types
   extensions:
     DeriveDataTypeable
-    FlexibleContexts
+    EmptyDataDecls
+    FlexibleInstances
+    GADTs
+    GeneralizedNewtypeDeriving
     OverloadedStrings
+    QuasiQuotes
     RecordWildCards
+    TemplateHaskell
     TypeFamilies
   ghc-options:     -Wall
 
