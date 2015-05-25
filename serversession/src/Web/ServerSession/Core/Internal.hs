@@ -201,9 +201,9 @@ setCookieName val state = state { cookieName = val }
 
 
 -- | Set the name of the session variable that keeps track of the
--- logged user.  Defaults to \"_ID\".
-setAuthKey :: State s -> Text -> State s
-setAuthKey state val = state { authKey = val }
+-- logged user.  Defaults to \"_ID\" (used by @yesod-auth@).
+setAuthKey :: Text -> State s -> State s
+setAuthKey val state = state { authKey = val }
 
 
 -- | Load the session map from the storage backend.  The value of
