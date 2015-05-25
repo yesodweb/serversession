@@ -9,6 +9,9 @@ module Web.ServerSession.Core
   , SessionMap
   , State
   , createState
+  , getCookieName
+  , getHttpOnlyCookies
+  , getSecureCookies
   , loadSession
   , cookieExpires
   , saveSession

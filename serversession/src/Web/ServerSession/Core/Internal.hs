@@ -18,6 +18,10 @@ module Web.ServerSession.Core.Internal
   , setPersistentCookies
   , setHttpOnlyCookies
   , setSecureCookies
+  , getCookieName
+  , getHttpOnlyCookies
+  , getSecureCookies
+
   , loadSession
   , checkExpired
   , nextExpires
@@ -298,6 +302,24 @@ setHttpOnlyCookies val state = state { httpOnlyCookies = val }
 -- Defaults to @False@.
 setSecureCookies :: Bool -> State s -> State s
 setSecureCookies val state = state { secureCookies = val }
+
+
+-- | Cf. 'setCookieName'.
+getCookieName :: State s -> Text
+getCookieName = cookieName
+
+
+-- | Cf. 'setHttpOnlyCookies'.
+getHttpOnlyCookies :: State s -> Bool
+getHttpOnlyCookies = httpOnlyCookies
+
+
+-- | Cf. 'setSecureCookies'.
+getSecureCookies :: State s -> Bool
+getSecureCookies = secureCookies
+
+
+----------------------------------------------------------------------
 
 
 -- | Load the session map from the storage backend.  The value of

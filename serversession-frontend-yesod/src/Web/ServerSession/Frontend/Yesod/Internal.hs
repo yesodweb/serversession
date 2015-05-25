@@ -14,7 +14,6 @@ import Data.ByteString (ByteString)
 import Data.Default (def)
 import Web.PathPieces (toPathPiece)
 import Web.ServerSession.Core
-import Web.ServerSession.Core.Internal (cookieName, httpOnlyCookies, secureCookies)
 import Yesod.Core (MonadHandler)
 import Yesod.Core.Handler (setSessionBS)
 import Yesod.Core.Types (Header(AddCookie), SessionBackend(..))
@@ -79,7 +78,7 @@ backend state =
       return (sessionMap, save)
   }
   where
-    cookieNameBS = TE.encodeUtf8 $ cookieName state
+    cookieNameBS = TE.encodeUtf8 $ getCookieName state
 
 
 -- | Create a cookie for the given session ID.
@@ -94,8 +93,8 @@ createCookie state cookieNameBS session =
     , C.setCookiePath     = Just "/"
     , C.setCookieExpires  = cookieExpires state session
     , C.setCookieDomain   = Nothing
-    , C.setCookieHttpOnly = httpOnlyCookies state
-    , C.setCookieSecure   = secureCookies state
+    , C.setCookieHttpOnly = getHttpOnlyCookies state
+    , C.setCookieSecure   = getSecureCookies state
     }
 
 
