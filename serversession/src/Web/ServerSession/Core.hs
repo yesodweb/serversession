@@ -15,6 +15,7 @@ module Web.ServerSession.Core
   , SaveSessionToken
   , forceInvalidateKey
     -- ** To be re-exported by frontends
+  , setCookieName
   , ForceInvalidate(..)
   ) where
 

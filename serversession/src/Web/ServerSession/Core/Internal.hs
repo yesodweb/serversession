@@ -11,6 +11,7 @@ module Web.ServerSession.Core.Internal
 
   , State(..)
   , createState
+  , setCookieName
   , setAuthKey
   , loadSession
   , saveSession
@@ -30,6 +31,7 @@ import Data.ByteString (ByteString)
 import Data.Maybe (isJust)
 import Data.Text (Text)
 import Data.Time (UTCTime, getCurrentTime)
+import Data.Time.Clock (DiffTime, secondsToDiffTime)
 import Data.Typeable (Typeable)
 import Web.PathPieces (PathPiece(..))
 
@@ -157,25 +159,45 @@ class MonadIO (TransactionM s) => Storage s where
 --
 --   * A reference to the storage backend.
 --
+--   * The name of cookie where the session ID will be saved ('setCookieName').
+--
 --   * Authentication session variable ('setAuthKey').
+--
+--   * Idle and absolute timeouts ('setIdleTimeout' and 'setAbsoluteTimeout').
 --
 -- Create a new 'State' using 'createState'.
 data State s =
   State
-    { generator :: !N.Generator
-    , storage   :: !s
-    , authKey   :: Text
+    { generator       :: !N.Generator
+    , storage         :: !s
+    , cookieName      :: !Text
+    , authKey         :: !Text
+    , idleTimeout     :: !(Maybe DiffTime)
+    , absoluteTimeout :: !(Maybe DiffTime)
     } deriving (Typeable)
 
 
 -- | Create a new 'State' for the server-side session backend
 -- using the given storage backend.
 createState :: MonadIO m => s -> m (State s)
-createState storage =
-  State
-    <$> N.new
-    <*> return storage
-    <*> return "_ID"
+createState sto = do
+  gen <- N.new
+  return State
+    { generator       = gen
+    , storage         = sto
+    , cookieName      = "JSESSIONID"
+    , authKey         = "_ID"
+    , idleTimeout     = Just $ secondsToDiffTime $ 60*60*24*7  -- 7 days
+    , absoluteTimeout = Just $ secondsToDiffTime $ 60*60*24*60 -- 60 days
+    }
+
+
+-- | Set the name of cookie where the session ID will be saved.
+-- Defaults to \"JSESSIONID\", which is a generic cookie name
+-- used by many frameworks thus making it harder to fingerprint
+-- this implementation.
+setCookieName :: Text -> State s -> State s
+setCookieName val state = state { cookieName = val }
 
 
 -- | Set the name of the session variable that keeps track of the

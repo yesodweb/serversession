@@ -10,9 +10,9 @@ import Control.Monad (guard)
 import Control.Monad.IO.Class (MonadIO)
 import Data.ByteString (ByteString)
 import Data.Default (def)
-import Web.Cookie (parseCookies, SetCookie(..))
 import Web.PathPieces (toPathPiece)
 import Web.ServerSession.Core
+import Web.ServerSession.Core.Internal (cookieName)
 import Yesod.Core (MonadHandler)
 import Yesod.Core.Handler (setSessionBS)
 import Yesod.Core.Types (Header(AddCookie), SessionBackend(..))
@@ -20,6 +20,7 @@ import Yesod.Core.Types (Header(AddCookie), SessionBackend(..))
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.Text.Encoding as TE
 import qualified Network.Wai as W
+import qualified Web.Cookie as C
 
 
 -- | Construct the server-side session backend using
@@ -34,51 +35,60 @@ import qualified Network.Wai as W
 --
 -- instance Yesod App where
 --   ...
---   makeSessionBackend = simpleBackend . SqlStorage . appConnPool
+--   makeSessionBackend = simpleBackend id . SqlStorage . appConnPool
 --   -- Do not forget to add migration code to your Application.hs!
 --   -- Please check serversession-backend-persistent's documentation.
 --   ...
 -- @
+--
+-- For example, if you wanted to disable the idle timeout and decrease the
+-- absolute timeout to one day, you could change that line to:
+--
+-- @
+--   makeSessionBackend = simpleBackend opts . SqlStorage . appConnPool
+--     where opts = setIdleTimeout Nothing
+--                . setAbsoluteTimeout (Just $ 60*60*24)
+-- @
 simpleBackend
   :: (MonadIO m, Storage s)
-  => s                        -- ^ Storage backend.
+  => (State s -> State s)     -- ^ Set any options on the @serversession@ state.
+  -> s                        -- ^ Storage backend.
   -> m (Maybe SessionBackend) -- ^ Yesod session backend (always @Just@).
-simpleBackend s = do
-  state <- createState s
-  let cookieName = "JSESSIONID" -- LOL :)
-  return $ Just $ backend state cookieName
+simpleBackend opts s =
+  return . Just . backend . opts =<< createState s
 
 
 -- | Construct the server-side session backend using the given
--- state and cookie name.
+-- state.
 backend
   :: Storage s
   => State s        -- ^ @serversession@ state, incl. storage backend.
-  -> ByteString     -- ^ Cookie name.
   -> SessionBackend -- ^ Yesod session backend.
-backend state cookieName =
+backend state =
   SessionBackend {
     sbLoadSession = \req -> do
-      let rawSessionId = findSessionId cookieName req
+      let rawSessionId = findSessionId cookieNameBS req
       (sessionMap, saveSessionToken) <- loadSession state rawSessionId
       let save =
-            fmap ((:[]) . createCookie cookieName) .
+            fmap ((:[]) . createCookie cookieNameBS) .
             saveSession state saveSessionToken
       return (sessionMap, save)
   }
+  where
+    cookieNameBS = TE.encodeUtf8 $ cookieName state
 
 
 -- | Create a cookie for the given session ID.
 createCookie :: ByteString -> SessionId -> Header
-createCookie cookieName key =
+createCookie cookieNameBS key =
   -- Generate a cookie with the final session ID.
   AddCookie def
-    { setCookieName     = cookieName
-    , setCookieValue    = TE.encodeUtf8 $ toPathPiece key
-    , setCookiePath     = Just "/"
-    , setCookieExpires  = Just undefined
-    , setCookieDomain   = Nothing
-    , setCookieHttpOnly = True
+    { C.setCookieName     = cookieNameBS
+    , C.setCookieValue    = TE.encodeUtf8 $ toPathPiece key
+    , C.setCookiePath     = Just "/"
+    , C.setCookieExpires  = Just undefined
+    , C.setCookieDomain   = Nothing
+    , C.setCookieHttpOnly = True
     }
 
 
@@ -89,11 +99,11 @@ createCookie cookieName key =
 --
 --   * There is more than one cookie with the given name.
 findSessionId :: ByteString -> W.Request -> Maybe ByteString
-findSessionId cookieName req = do
+findSessionId cookieNameBS req = do
   [raw] <- return $ do
     ("Cookie", header) <- W.requestHeaders req
-    (k, v) <- parseCookies header
-    guard (k == cookieName)
+    (k, v) <- C.parseCookies header
+    guard (k == cookieNameBS)
     return v
   return raw
 
