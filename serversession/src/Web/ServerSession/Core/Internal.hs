@@ -13,6 +13,8 @@ module Web.ServerSession.Core.Internal
   , createState
   , setCookieName
   , setAuthKey
+  , setIdleTimeout
+  , setAbsoluteTimeout
   , loadSession
   , saveSession
   , SaveSessionToken(..)
@@ -204,6 +206,45 @@ setCookieName val state = state { cookieName = val }
 -- logged user.  Defaults to \"_ID\" (used by @yesod-auth@).
 setAuthKey :: Text -> State s -> State s
 setAuthKey val state = state { authKey = val }
+
+
+-- | Set the idle timeout for all sessions.  This is used both on
+-- the client side (by setting the cookie expires fields) and on
+-- the server side (the idle timeout is enforced even if the
+-- cookie expiration is ignored).  Setting to @Nothing@ removes
+-- the idle timeout entirely.
+--
+-- \"[The idle timemout] defines the amount of time a session
+-- will remain active in case there is no activity in the
+-- session, closing and invalidating the session upon the defined
+-- idle period since the last HTTP request received by the web
+-- application for a given session ID.\"
+-- (<https://www.owasp.org/index.php/Session_Management_Cheat_Sheet#Idle_Timeout Source>)
+--
+-- Defaults to 7 days.
+setIdleTimeout :: Maybe DiffTime -> State s -> State s
+setIdleTimeout (Just d) _ | d <= 0 = error "serversession/setIdleTimeout: Timeout should be positive."
+setIdleTimeout val state = state { idleTimeout = val }
+
+
+-- | Set the absolute timeout for all sessions.  This is used both on
+-- the client side (by setting the cookie expires fields) and on
+-- the server side (the absolute timeout is enforced even if the
+-- cookie expiration is ignored).  Setting to @Nothing@ removes
+-- the absolute timeout entirely.
+--
+-- \"[The absolute timeout] defines the maximum amount of time a
+-- session can be active, closing and invalidating the session
+-- upon the defined absolute period since the given session was
+-- initially created by the web application. After invalidating
+-- the session, the user is forced to (re)authenticate again in
+-- the web application and establish a new session.\"
+-- (<https://www.owasp.org/index.php/Session_Management_Cheat_Sheet#Absolute_Timeout Source>)
+--
+-- Defaults to 60 days.
+setAbsoluteTimeout :: Maybe DiffTime -> State s -> State s
+setAbsoluteTimeout (Just d) _ | d <= 0 = error "serversession/setAbsoluteTimeout: Timeout should be positive."
+setAbsoluteTimeout val state = state { absoluteTimeout = val }
 
 
 -- | Load the session map from the storage backend.  The value of

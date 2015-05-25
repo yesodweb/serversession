@@ -7,15 +7,17 @@ module Web.ServerSession.Core
 
     -- * For serversession frontends
   , SessionMap
-  , State(..)
+  , State
   , createState
-  , setAuthKey
   , loadSession
   , saveSession
   , SaveSessionToken
   , forceInvalidateKey
     -- ** To be re-exported by frontends
   , setCookieName
+  , setAuthKey
+  , setIdleTimeout
+  , setAbsoluteTimeout
   , ForceInvalidate(..)
   ) where
 

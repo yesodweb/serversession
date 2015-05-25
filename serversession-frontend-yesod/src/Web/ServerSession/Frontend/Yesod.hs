@@ -1,3 +1,4 @@
+-- | Yesod server-side session support.
 module Web.ServerSession.Frontend.Yesod
   ( -- * Using server-side sessions
     simpleBackend
@@ -5,7 +6,13 @@ module Web.ServerSession.Frontend.Yesod
     -- * Invalidating session IDs
   , forceInvalidate
   , ForceInvalidate(..)
+    -- * State configuration
+  , setCookieName
+  , setAuthKey
+  , setIdleTimeout
+  , setAbsoluteTimeout
+  , State
   ) where
 
-import Web.ServerSession.Core (ForceInvalidate(..))
+import Web.ServerSession.Core
 import Web.ServerSession.Frontend.Yesod.Internal
