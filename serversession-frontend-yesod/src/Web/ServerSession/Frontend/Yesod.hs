@@ -12,6 +12,8 @@ module Web.ServerSession.Frontend.Yesod
   , setIdleTimeout
   , setAbsoluteTimeout
   , setPersistentCookies
+  , setHttpOnlyCookies
+  , setSecureCookies
   , State
   ) where
 

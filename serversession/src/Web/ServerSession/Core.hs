@@ -20,6 +20,8 @@ module Web.ServerSession.Core
   , setIdleTimeout
   , setAbsoluteTimeout
   , setPersistentCookies
+  , setHttpOnlyCookies
+  , setSecureCookies
   , ForceInvalidate(..)
   ) where
 

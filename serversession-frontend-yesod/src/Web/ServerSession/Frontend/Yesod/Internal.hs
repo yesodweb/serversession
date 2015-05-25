@@ -14,7 +14,7 @@ import Data.ByteString (ByteString)
 import Data.Default (def)
 import Web.PathPieces (toPathPiece)
 import Web.ServerSession.Core
-import Web.ServerSession.Core.Internal (cookieName)
+import Web.ServerSession.Core.Internal (cookieName, httpOnlyCookies, secureCookies)
 import Yesod.Core (MonadHandler)
 import Yesod.Core.Handler (setSessionBS)
 import Yesod.Core.Types (Header(AddCookie), SessionBackend(..))
@@ -43,13 +43,15 @@ import qualified Web.Cookie as C
 --   ...
 -- @
 --
--- For example, if you wanted to disable the idle timeout and decrease the
--- absolute timeout to one day, you could change that line to:
+-- For example, if you wanted to disable the idle timeout,
+-- decrease the absolute timeout to one day and mark cookies as
+-- \"Secure\", you could change that line to:
 --
 -- @
 --   makeSessionBackend = simpleBackend opts . SqlStorage . appConnPool
 --     where opts = setIdleTimeout Nothing
 --                . setAbsoluteTimeout (Just $ 60*60*24)
+--                . setSecureCookies True
 -- @
 simpleBackend
   :: (MonadIO m, Storage s)
@@ -92,7 +94,8 @@ createCookie state cookieNameBS session =
     , C.setCookiePath     = Just "/"
     , C.setCookieExpires  = cookieExpires state session
     , C.setCookieDomain   = Nothing
-    , C.setCookieHttpOnly = True
+    , C.setCookieHttpOnly = httpOnlyCookies state
+    , C.setCookieSecure   = secureCookies state
     }
 
 

@@ -16,6 +16,8 @@ module Web.ServerSession.Core.Internal
   , setIdleTimeout
   , setAbsoluteTimeout
   , setPersistentCookies
+  , setHttpOnlyCookies
+  , setSecureCookies
   , loadSession
   , checkExpired
   , nextExpires
@@ -171,7 +173,9 @@ class MonadIO (TransactionM s) => Storage s where
 --
 --   * Idle and absolute timeouts ('setIdleTimeout' and 'setAbsoluteTimeout').
 --
---   * Whether cookies should be persistent ('setPersistentCookies')
+--   * Whether cookies should be persistent
+--   ('setPersistentCookies'), HTTP-only ('setHTTPOnlyCookies')
+--   and/or secure ('setSecureCookies').
 --
 -- Create a new 'State' using 'createState'.
 data State s =
@@ -183,6 +187,8 @@ data State s =
     , idleTimeout       :: !(Maybe NominalDiffTime)
     , absoluteTimeout   :: !(Maybe NominalDiffTime)
     , persistentCookies :: !Bool
+    , httpOnlyCookies   :: !Bool
+    , secureCookies     :: !Bool
     } deriving (Typeable)
 
 
@@ -199,6 +205,8 @@ createState sto = do
     , idleTimeout       = Just $ 60*60*24*7  -- 7 days
     , absoluteTimeout   = Just $ 60*60*24*60 -- 60 days
     , persistentCookies = True
+    , httpOnlyCookies   = True
+    , secureCookies     = False
     }
 
 
@@ -267,6 +275,29 @@ setAbsoluteTimeout val state = state { absoluteTimeout = val }
 -- Defaults to @True@.
 setPersistentCookies :: Bool -> State s -> State s
 setPersistentCookies val state = state { persistentCookies = val }
+
+
+-- | Set whether cookies should be HTTP-only (@True@) or not
+-- (@False@).  Cookies marked as HTTP-only (\"HttpOnly\") are not
+-- accessible from client-side scripting languages such as
+-- JavaScript, thus preventing a large class of XSS attacks.
+-- It's highly recommended to set this attribute to @True@.
+--
+-- Defaults to @True@.
+setHttpOnlyCookies :: Bool -> State s -> State s
+setHttpOnlyCookies val state = state { httpOnlyCookies = val }
+
+
+-- | Set whether cookies should be mared \"Secure\" (@True@) or not
+-- (@False@).  Cookies marked as \"Secure\" are not sent via
+-- plain HTTP connections, only via HTTPS connections.  It's
+-- highly recommended to set this attribute to @True@.  However,
+-- since many sites do not operate over HTTPS, the default is
+-- @False@.
+--
+-- Defaults to @False@.
+setSecureCookies :: Bool -> State s -> State s
+setSecureCookies val state = state { secureCookies = val }
 
 
 -- | Load the session map from the storage backend.  The value of
