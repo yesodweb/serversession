@@ -1,26 +1,71 @@
 module Web.ServerSession.Frontend.Yesod.Internal
-  (
+  ( simpleBackend
+  , backend
+  , createCookie
+  , findSessionId
+  , forceInvalidate
   ) where
 
-
--- TODO: I'm in a bad shape :(.
-
-
+import Control.Monad (guard)
+import Control.Monad.IO.Class (MonadIO)
+import Data.ByteString (ByteString)
 import Data.Default (def)
 import Web.Cookie (parseCookies, SetCookie(..))
+import Web.PathPieces (toPathPiece)
+import Web.ServerSession.Core
 import Yesod.Core (MonadHandler)
 import Yesod.Core.Handler (setSessionBS)
-import Yesod.Core.Types (Header(AddCookie), SaveSession, SessionBackend(..), SessionMap)
+import Yesod.Core.Types (Header(AddCookie), SessionBackend(..))
+
+import qualified Data.ByteString.Char8 as B8
+import qualified Data.Text.Encoding as TE
 import qualified Network.Wai as W
 
 
--- | Construct the server-side session backend from the given state.
-backend :: Storage s => State s -> SessionBackend
-backend state =
-  SessionBackend {
-    sbLoadSession = loadSession state "JSESSIONID" -- LOL :)
-  }
+-- | Construct the server-side session backend using
+-- the given storage backend.
+--
+-- Example usage for the Yesod scaffold using
+-- @serversession-backend-persistent@:
+--
+-- @
+-- import Web.ServerSession.Backend.Persistent (SqlStorage(..))
+-- import Web.ServerSession.Frontend.Yesod (simpleBackend)
+--
+-- instance Yesod App where
+--   ...
+--   makeSessionBackend = simpleBackend . SqlStorage . appConnPool
+--   -- Do not forget to add migration code to your Application.hs!
+--   -- Please check serversession-backend-persistent's documentation.
+--   ...
+-- @
+simpleBackend
+  :: (MonadIO m, Storage s)
+  => s                        -- ^ Storage backend.
+  -> m (Maybe SessionBackend) -- ^ Yesod session backend (always @Just@).
+simpleBackend s = do
+  state <- createState s
+  let cookieName = "JSESSIONID" -- LOL :)
+  return $ Just $ backend state cookieName
 
+
+-- | Construct the server-side session backend using the given
+-- state and cookie name.
+backend
+  :: Storage s
+  => State s        -- ^ @serversession@ state, incl. storage backend.
+  -> ByteString     -- ^ Cookie name.
+  -> SessionBackend -- ^ Yesod session backend.
+backend state cookieName =
+  SessionBackend {
+    sbLoadSession = \req -> do
+      let rawSessionId = findSessionId cookieName req
+      (sessionMap, saveSessionToken) <- loadSession state rawSessionId
+      let save =
+            fmap ((:[]) . createCookie cookieName) .
+            saveSession state saveSessionToken
+      return (sessionMap, save)
+  }
 
 
 -- | Create a cookie for the given session ID.
@@ -29,7 +74,7 @@ createCookie cookieName key =
   -- Generate a cookie with the final session ID.
   AddCookie def
     { setCookieName     = cookieName
-    , setCookieValue    = TE.encodeUtf8 $ unS key
+    , setCookieValue    = TE.encodeUtf8 $ toPathPiece key
     , setCookiePath     = Just "/"
     , setCookieExpires  = Just undefined
     , setCookieDomain   = Nothing
@@ -43,25 +88,14 @@ createCookie cookieName key =
 --   * There are zero cookies with the given name.
 --
 --   * There is more than one cookie with the given name.
---
---   * The cookie's value isn't considered a 'SessionId'.  We're
---   a bit strict here.
-findSessionId :: ByteString -> W.Request -> Maybe SessionId
+findSessionId :: ByteString -> W.Request -> Maybe ByteString
 findSessionId cookieName req = do
-  let matching = do
-        ("Cookie", header) <- W.requestHeaders req
-        (k, v) <- parseCookies header
-        guard (k == cookieName)
-        return v
-  [raw] <- return matching
-  fromPathPiece (TE.decodeUtf8 raw)
-
-
--- | The session key used by @yesod-auth@ without depending on it.
-authKey :: Text
-authKey = "_ID"
-
-
+  [raw] <- return $ do
+    ("Cookie", header) <- W.requestHeaders req
+    (k, v) <- parseCookies header
+    guard (k == cookieName)
+    return v
+  return raw
 
 
 -- | Invalidate the current session ID (and possibly more, check
@@ -73,5 +107,10 @@ authKey = "_ID"
 -- end of the handler processing.  This means that later calls to
 -- 'forceInvalidate' on the same handler will override earlier
 -- calls.
+--
+-- This function works by setting a session variable that is
+-- checked when saving the session.  The session variable set by
+-- this function is then discarded and is not persisted across
+-- requests.
 forceInvalidate :: MonadHandler m => ForceInvalidate -> m ()
 forceInvalidate = setSessionBS forceInvalidateKey . B8.pack . show

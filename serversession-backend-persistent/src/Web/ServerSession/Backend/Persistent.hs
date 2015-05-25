@@ -22,6 +22,8 @@
 -- share [mkPersist sqlSettings, mkSave \"entityDefs\"]
 --
 -- -- On Application.hs
+-- import Web.ServerSession.Backend.Persistent (serverSessionDefs)
+--
 -- mkMigrate \"migrateAll\" (serverSessionDefs ++ entityDefs)
 --
 -- makeFoundation =
@@ -30,8 +32,9 @@
 --     ...
 -- @
 --
--- If you forget to setup the migration above, this backend will
--- fail at runtime as the required table will not exist.
+-- If you forget to setup the migration above, this session
+-- storage backend will fail at runtime as the required table
+-- will not exist.
 module Web.ServerSession.Backend.Persistent
   ( SqlStorage(..)
   , serverSessionDefs

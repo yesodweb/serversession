@@ -17,40 +17,22 @@ library
   hs-source-dirs: src
   build-depends:
       base                      == 4.*
-    , aeson
-    , base64-bytestring         == 1.0.*
     , bytestring
-    , containers
     , cookie                    >= 0.4
     , data-default
-    , nonce                     == 1.0.*
     , path-pieces
-    , persistent                == 2.1.*
-    , persistent-template       == 2.1.*
-    , resource-pool
     , text
     , time
     , transformers
     , wai
     , yesod-core                == 1.4.*
+
+    , serversession             == 1.0.*
   exposed-modules:
-    Yesod.Persist.Session
-    Yesod.Persist.Session.Internal.Backend
-    Yesod.Persist.Session.Internal.Sql
-    Yesod.Persist.Session.Internal.Types
+    Web.ServerSession.Frontend.Yesod
+    Web.ServerSession.Frontend.Yesod.Internal
   extensions:
-    DeriveDataTypeable
-    EmptyDataDecls
-    FlexibleContexts
-    FlexibleInstances
-    GADTs
-    GeneralizedNewtypeDeriving
     OverloadedStrings
-    QuasiQuotes
-    RecordWildCards
-    ScopedTypeVariables
-    TemplateHaskell
-    TypeFamilies
   ghc-options:     -Wall
 
 source-repository head
