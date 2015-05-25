@@ -72,7 +72,7 @@ backend state =
       let rawSessionId = findSessionId cookieNameBS req
       (sessionMap, saveSessionToken) <- loadSession state rawSessionId
       let save =
-            fmap ((:[]) . createCookie cookieNameBS) .
+            fmap ((:[]) . createCookie state cookieNameBS) .
             saveSession state saveSessionToken
       return (sessionMap, save)
   }
@@ -81,14 +81,16 @@ backend state =
 
 
 -- | Create a cookie for the given session ID.
-createCookie :: ByteString -> SessionId -> Header
-createCookie cookieNameBS key =
+--
+-- The cookie expiration is set via 'nextExpires'.  Note that this is just an optimization
+createCookie :: State s -> ByteString -> Session -> Header
+createCookie state cookieNameBS session =
   -- Generate a cookie with the final session ID.
   AddCookie def
     { C.setCookieName     = cookieNameBS
-    , C.setCookieValue    = TE.encodeUtf8 $ toPathPiece key
+    , C.setCookieValue    = TE.encodeUtf8 $ toPathPiece $ sessionKey session
     , C.setCookiePath     = Just "/"
-    , C.setCookieExpires  = Just undefined
+    , C.setCookieExpires  = cookieExpires state session
     , C.setCookieDomain   = Nothing
     , C.setCookieHttpOnly = True
     }

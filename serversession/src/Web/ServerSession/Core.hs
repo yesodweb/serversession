@@ -10,6 +10,7 @@ module Web.ServerSession.Core
   , State
   , createState
   , loadSession
+  , cookieExpires
   , saveSession
   , SaveSessionToken
   , forceInvalidateKey
@@ -18,6 +19,7 @@ module Web.ServerSession.Core
   , setAuthKey
   , setIdleTimeout
   , setAbsoluteTimeout
+  , setPersistentCookies
   , ForceInvalidate(..)
   ) where
 

@@ -15,7 +15,11 @@ module Web.ServerSession.Core.Internal
   , setAuthKey
   , setIdleTimeout
   , setAbsoluteTimeout
+  , setPersistentCookies
   , loadSession
+  , checkExpired
+  , nextExpires
+  , cookieExpires
   , saveSession
   , SaveSessionToken(..)
   , invalidateIfNeeded
@@ -30,10 +34,10 @@ module Web.ServerSession.Core.Internal
 import Control.Monad (guard, when)
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.ByteString (ByteString)
-import Data.Maybe (isJust)
+import Data.Maybe (catMaybes, fromMaybe, isJust)
 import Data.Text (Text)
 import Data.Time (UTCTime, getCurrentTime)
-import Data.Time.Clock (DiffTime, secondsToDiffTime)
+import Data.Time.Clock (NominalDiffTime, addUTCTime)
 import Data.Typeable (Typeable)
 import Web.PathPieces (PathPiece(..))
 
@@ -119,6 +123,8 @@ data Session =
       -- ^ Rest of the session data.
     , sessionCreatedAt :: UTCTime
       -- ^ When this session was created.
+    , sessionAccessedAt :: UTCTime
+      -- ^ When this session was last accessed.
     } deriving (Eq, Ord, Show, Typeable)
 
 
@@ -150,8 +156,6 @@ class MonadIO (TransactionM s) => Storage s where
 ----------------------------------------------------------------------
 
 
--- TODO: expiration
-
 -- TODO: do not create empty sessions
 
 -- | The server-side session backend needs to maintain some state
@@ -167,15 +171,18 @@ class MonadIO (TransactionM s) => Storage s where
 --
 --   * Idle and absolute timeouts ('setIdleTimeout' and 'setAbsoluteTimeout').
 --
+--   * Whether cookies should be persistent ('setPersistentCookies')
+--
 -- Create a new 'State' using 'createState'.
 data State s =
   State
-    { generator       :: !N.Generator
-    , storage         :: !s
-    , cookieName      :: !Text
-    , authKey         :: !Text
-    , idleTimeout     :: !(Maybe DiffTime)
-    , absoluteTimeout :: !(Maybe DiffTime)
+    { generator         :: !N.Generator
+    , storage           :: !s
+    , cookieName        :: !Text
+    , authKey           :: !Text
+    , idleTimeout       :: !(Maybe NominalDiffTime)
+    , absoluteTimeout   :: !(Maybe NominalDiffTime)
+    , persistentCookies :: !Bool
     } deriving (Typeable)
 
 
@@ -185,12 +192,13 @@ createState :: MonadIO m => s -> m (State s)
 createState sto = do
   gen <- N.new
   return State
-    { generator       = gen
-    , storage         = sto
-    , cookieName      = "JSESSIONID"
-    , authKey         = "_ID"
-    , idleTimeout     = Just $ secondsToDiffTime $ 60*60*24*7  -- 7 days
-    , absoluteTimeout = Just $ secondsToDiffTime $ 60*60*24*60 -- 60 days
+    { generator         = gen
+    , storage           = sto
+    , cookieName        = "JSESSIONID"
+    , authKey           = "_ID"
+    , idleTimeout       = Just $ 60*60*24*7  -- 7 days
+    , absoluteTimeout   = Just $ 60*60*24*60 -- 60 days
+    , persistentCookies = True
     }
 
 
@@ -222,7 +230,7 @@ setAuthKey val state = state { authKey = val }
 -- (<https://www.owasp.org/index.php/Session_Management_Cheat_Sheet#Idle_Timeout Source>)
 --
 -- Defaults to 7 days.
-setIdleTimeout :: Maybe DiffTime -> State s -> State s
+setIdleTimeout :: Maybe NominalDiffTime -> State s -> State s
 setIdleTimeout (Just d) _ | d <= 0 = error "serversession/setIdleTimeout: Timeout should be positive."
 setIdleTimeout val state = state { idleTimeout = val }
 
@@ -242,9 +250,23 @@ setIdleTimeout val state = state { idleTimeout = val }
 -- (<https://www.owasp.org/index.php/Session_Management_Cheat_Sheet#Absolute_Timeout Source>)
 --
 -- Defaults to 60 days.
-setAbsoluteTimeout :: Maybe DiffTime -> State s -> State s
+setAbsoluteTimeout :: Maybe NominalDiffTime -> State s -> State s
 setAbsoluteTimeout (Just d) _ | d <= 0 = error "serversession/setAbsoluteTimeout: Timeout should be positive."
 setAbsoluteTimeout val state = state { absoluteTimeout = val }
+
+
+-- | Set whether by default cookies should be persistent (@True@) or
+-- non-persistent (@False@).  Persistent cookies are saved across
+-- browser sessions.  Non-persistent cookies are discarded when
+-- the browser is closed.
+--
+-- If you set cookies to be persistent and do not define any
+-- timeouts ('setIdleTimeout' or 'setAbsoluteTimeout'), then the
+-- cookie is set to expire in 10 years.
+--
+-- Defaults to @True@.
+setPersistentCookies :: Bool -> State s -> State s
+setPersistentCookies val state = state { persistentCookies = val }
 
 
 -- | Load the session map from the storage backend.  The value of
@@ -259,27 +281,60 @@ setAbsoluteTimeout val state = state { absoluteTimeout = val }
 --   of the request in order to save the session.
 loadSession :: Storage s => State s -> Maybe ByteString -> IO (SessionMap, SaveSessionToken)
 loadSession state mcookieVal = do
+  now <- getCurrentTime
   let maybeInputId = mcookieVal >>= fromPathPiece . TE.decodeUtf8
-      get = runTransactionM (storage state) . getSession (storage state)
-  maybeInput <- maybe (return Nothing) get maybeInputId
+      get          = runTransactionM (storage state) . getSession (storage state)
+      checkedGet   = fmap (>>= checkExpired now state) . get
+  maybeInput <- maybe (return Nothing) checkedGet maybeInputId
   let inputSessionMap = maybe M.empty (toSessionMap state) maybeInput
-  return (inputSessionMap, SaveSessionToken maybeInput)
+  return (inputSessionMap, SaveSessionToken maybeInput now)
+
+
+-- | Check if a session @s@ has expired.  Returns the @Just s@ if
+-- not expired, or @Nothing@ if expired.
+checkExpired :: UTCTime {-^ Now. -} -> State s -> Session -> Maybe Session
+checkExpired now state session =
+  let expired = maybe False (< now) (nextExpires state session)
+  in guard (not expired) >> return session
+
+
+-- | Calculate the next point in time where the given session
+-- will expire assuming that it sees no activity until then.
+-- Returns @Nothing@ iff the state does not have any expirations
+-- set to @Just@.
+nextExpires :: State s -> Session -> Maybe UTCTime
+nextExpires State {..} Session {..} =
+  let viaIdle     = flip addUTCTime sessionAccessedAt <$> idleTimeout
+      viaAbsolute = flip addUTCTime sessionCreatedAt  <$> absoluteTimeout
+      minimum' [] = Nothing
+      minimum' xs = Just $ minimum xs
+  in minimum' $ catMaybes [viaIdle, viaAbsolute]
+
+
+-- | Calculate the date that should be used for the cookie's
+-- \"Expires\" field.
+cookieExpires :: State s -> Session -> Maybe UTCTime
+cookieExpires State {..} _ | not persistentCookies = Nothing
+cookieExpires state session =
+  Just $ fromMaybe tenYearsFromNow $ nextExpires state session
+  where tenYearsFromNow = addUTCTime (60*60*24*3652) now
+        now = sessionAccessedAt session -- :)
 
 
 -- | Opaque token containing the necessary information for
 -- 'saveSession' to save the session.
-newtype SaveSessionToken = SaveSessionToken (Maybe Session)
+data SaveSessionToken = SaveSessionToken (Maybe Session) UTCTime
 
 
 -- | Save the session on the storage backend.  A
 -- 'SaveSessionToken' given by 'loadSession' is expected besides
 -- the new contents of the session.
-saveSession :: Storage s => State s -> SaveSessionToken -> SessionMap -> IO SessionId
-saveSession state (SaveSessionToken maybeInput) wholeOutputSessionMap =
+saveSession :: Storage s => State s -> SaveSessionToken -> SessionMap -> IO Session
+saveSession state (SaveSessionToken maybeInput now) wholeOutputSessionMap =
   runTransactionM (storage state) $ do
     let decomposedSessionMap = decomposeSession state wholeOutputSessionMap
     newMaybeInput <- invalidateIfNeeded state maybeInput decomposedSessionMap
-    saveSessionOnDb state newMaybeInput decomposedSessionMap
+    saveSessionOnDb state now newMaybeInput decomposedSessionMap
 
 
 -- | Invalidates an old session ID if needed.  Returns the
@@ -335,10 +390,11 @@ decomposeSession state sm1 =
 saveSessionOnDb
   :: Storage s
   => State s
-  -> Maybe Session            -- ^ The old session, if any.
-  -> DecomposedSession        -- ^ The session data to be saved.
-  -> TransactionM s SessionId -- ^ The ID of the saved session.
-saveSessionOnDb state maybeInput DecomposedSession {..} = do
+  -> UTCTime                -- ^ Now.
+  -> Maybe Session          -- ^ The old session, if any.
+  -> DecomposedSession      -- ^ The session data to be saved.
+  -> TransactionM s Session -- ^ Copy of saved session.
+saveSessionOnDb state now maybeInput DecomposedSession {..} = do
   -- Generate properties if needed or take them from previous
   -- saved session.
   (saveToDb, key, createdAt) <-
@@ -346,14 +402,21 @@ saveSessionOnDb state maybeInput DecomposedSession {..} = do
       Nothing -> liftIO $
         (,,) <$> return (insertSession $ storage state)
              <*> generateSessionId (generator state)
-             <*> getCurrentTime
+             <*> return now
       Just Session {..} ->
         return ( replaceSession (storage state)
                , sessionKey
                , sessionCreatedAt)
   -- Save to the database.
-  saveToDb $ Session key dsAuthId dsSessionMap createdAt
-  return key
+  let session = Session
+        { sessionKey        = key
+        , sessionAuthId     = dsAuthId
+        , sessionData       = dsSessionMap
+        , sessionCreatedAt  = createdAt
+        , sessionAccessedAt = now
+        }
+  saveToDb session
+  return session
 
 
 -- | Create a 'SessionMap' from a 'Session'.

@@ -28,10 +28,11 @@ share
   [mkPersist sqlSettings, mkSave "serverSessionDefs"]
   [persistLowerCase|
     PersistentSession json
-      key       SessionId         -- Session ID, primary key.
-      authId    ByteStringJ Maybe -- Value of "_ID" session key.
-      session   SessionMapJ       -- Rest of the session data.
-      createdAt UTCTime           -- When this session was created.
+      key        SessionId         -- Session ID, primary key.
+      authId     ByteStringJ Maybe -- Value of "_ID" session key.
+      session    SessionMapJ       -- Rest of the session data.
+      createdAt  UTCTime           -- When this session was created.
+      accessedAt UTCTime           -- When this session was last accessed.
       Primary key
       deriving Eq Ord Show Typeable
   |]
@@ -46,10 +47,11 @@ psKey = PersistentSessionKey'
 toPersistentSession :: Session -> PersistentSession
 toPersistentSession Session {..} =
   PersistentSession
-    { persistentSessionKey       = sessionKey
-    , persistentSessionAuthId    = fmap B sessionAuthId
-    , persistentSessionSession   = M sessionData
-    , persistentSessionCreatedAt = sessionCreatedAt
+    { persistentSessionKey        = sessionKey
+    , persistentSessionAuthId     = fmap B sessionAuthId
+    , persistentSessionSession    = M sessionData
+    , persistentSessionCreatedAt  = sessionCreatedAt
+    , persistentSessionAccessedAt = sessionAccessedAt
     }
 
 
@@ -57,10 +59,11 @@ toPersistentSession Session {..} =
 fromPersistentSession :: PersistentSession -> Session
 fromPersistentSession PersistentSession {..} =
   Session
-    { sessionKey       = persistentSessionKey
-    , sessionAuthId    = fmap unB persistentSessionAuthId
-    , sessionData      = unM persistentSessionSession
-    , sessionCreatedAt = persistentSessionCreatedAt
+    { sessionKey        = persistentSessionKey
+    , sessionAuthId     = fmap unB persistentSessionAuthId
+    , sessionData       = unM persistentSessionSession
+    , sessionCreatedAt  = persistentSessionCreatedAt
+    , sessionAccessedAt = persistentSessionAccessedAt
     }
 
 
