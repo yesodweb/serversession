@@ -328,6 +328,11 @@ forceInvalidateKey = "serversession-force-invalidate"
 
 
 -- | Which session IDs should be invalidated.
+--
+-- Note that this is not the same concept of invalidation as used
+-- on J2EE.  In this context, invalidation means creating a fresh
+-- session ID for this user's session and disabling the old ID.
+-- Its purpose is to avoid session fixation attacks.
 data ForceInvalidate =
     CurrentSessionId
     -- ^ Invalidate the current session ID.  The current session
