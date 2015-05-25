@@ -302,15 +302,15 @@ toSessionMap state Session {..} =
 -- | The session key used to signal that the session ID should be
 -- invalidated.
 forceInvalidateKey :: Text
-forceInvalidateKey = "yesod-persistent-session-force-invalidate"
+forceInvalidateKey = "serversession-force-invalidate"
 
 
 -- | Which session IDs should be invalidated.
 data ForceInvalidate =
     CurrentSessionId
     -- ^ Invalidate the current session ID.  The current session
-    -- ID is automatically invalidated on @yesod-auth@ login and
-    -- logout.
+    -- ID is automatically invalidated on login and logout
+    -- (cf. 'setAuthKey').
   | AllSessionIdsOfLoggedUser
     -- ^ Invalidate all session IDs beloging to the currently
     -- logged in user.  Only the current session ID will be
