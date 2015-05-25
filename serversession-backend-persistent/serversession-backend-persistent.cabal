@@ -24,7 +24,6 @@ library
     , path-pieces
     , persistent                == 2.1.*
     , persistent-template       == 2.1.*
-    , resource-pool
     , text
     , time
 

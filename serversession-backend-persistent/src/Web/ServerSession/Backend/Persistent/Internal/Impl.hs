@@ -12,7 +12,6 @@ module Web.ServerSession.Backend.Persistent.Internal.Impl
   ) where
 
 import Control.Monad (void)
-import Data.Pool (Pool)
 import Data.Time (UTCTime)
 import Data.Typeable (Typeable)
 import Database.Persist (PersistEntity(..))
@@ -68,7 +67,7 @@ fromPersistentSession PersistentSession {..} =
 -- | SQL session storage backend using @persistent@.
 newtype SqlStorage =
   SqlStorage
-    { connPool :: Pool P.SqlBackend
+    { connPool :: P.ConnectionPool
       -- ^ Pool of DB connections.  You may use the same pool as
       -- your application.
     } deriving (Typeable)
