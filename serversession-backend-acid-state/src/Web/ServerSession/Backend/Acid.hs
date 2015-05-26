@@ -4,12 +4,15 @@
 -- example:
 --
 -- @
--- import Data.Acid
--- import Web.ServerSession.Backend.Acid
+-- import Control.Exception (bracket)
+-- import Data.Acid.Local (openLocalState, createCheckpointAndClose)
+-- import Web.ServerSession.Backend.Acid (AcidStorage(..), emptyState)
 --
--- makeSessionStorage :: IO 'AcidStorage'
--- makeSessionStorage =
---   'AcidStorage' \<$\> openLocalState 'emptyState'
+-- withSessionStorage :: (AcidStorage -> IO a) -> IO a
+-- withSessionStorage =
+--   bracket
+--     ('AcidStorage' \<$\> openLocalState 'emptyState')
+--     createCheckpointAndClose
 -- @
 module Web.ServerSession.Backend.Acid
   ( AcidStorage(..)

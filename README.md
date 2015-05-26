@@ -17,6 +17,11 @@ to be paired up with two companion packages:
       `persistent`'s SQL backend.  Works with PostgreSQL, MySQL,
       SQLite.
 
+    * `serversession-backend-acid-state`: Storage backend using
+      `acid-state`.  This backend keeps sessions in memory but
+      provides ACID guarantees using a transaction log.  It can
+      also be used without durability as a memory-only backend.
+
   * _Frontend_, bindings for your web framework of choice.
     Currently we support:
 
