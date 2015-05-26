@@ -84,6 +84,18 @@ Any authentication mechanism is supported as long as it uses a
 session variable.
 
 
+## Current limitations
+
+These limitations may be addressed in the future.  Right now,
+though, please bear in mind that:
+
+  * There's no support for cleaning old sessions from the storage
+    backends.
+
+  * There's no way of setting timeouts and cookie persistence on
+    a per-session basis, only a global basis.
+
+
 ## Background
 
 Yesod has always support client-side sessions via the
