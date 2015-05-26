@@ -22,6 +22,9 @@ to be paired up with two companion packages:
       provides ACID guarantees using a transaction log.  It can
       also be used without durability as a memory-only backend.
 
+    * `serversession-backend-redis`: Storage backend using
+      Redis via the `hedis` package.
+
   * _Frontend_, bindings for your web framework of choice.
     Currently we support:
 
