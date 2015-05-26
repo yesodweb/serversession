@@ -81,9 +81,11 @@ backend state =
     cookieNameBS = TE.encodeUtf8 $ getCookieName state
 
 
--- | Create a cookie for the given session ID.
+-- | Create a cookie for the given session.
 --
--- The cookie expiration is set via 'nextExpires'.  Note that this is just an optimization
+-- The cookie expiration is set via 'nextExpires'.  Note that
+-- this is just an optimization, as the expiration is checked on
+-- the server-side as well.
 createCookie :: State s -> ByteString -> Session -> Header
 createCookie state cookieNameBS session =
   -- Generate a cookie with the final session ID.
