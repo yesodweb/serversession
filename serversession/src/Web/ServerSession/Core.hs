@@ -2,6 +2,7 @@
 module Web.ServerSession.Core
   ( -- * For serversession storage backends
     SessionId
+  , AuthId
   , Session(..)
   , Storage(..)
 

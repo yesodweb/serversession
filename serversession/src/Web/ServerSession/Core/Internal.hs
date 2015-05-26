@@ -6,6 +6,7 @@ module Web.ServerSession.Core.Internal
   , generateSessionId
 
   , SessionMap
+  , AuthId
   , Session(..)
   , Storage(..)
 
@@ -112,6 +113,10 @@ generateSessionId = fmap S . N.nonce128urlT
 type SessionMap = M.Map Text ByteString
 
 
+-- | Value of the 'authKey' session key.
+type AuthId = ByteString
+
+
 -- | Representation of a saved session.
 --
 -- This representation is used by the @serversession@ family of
@@ -123,7 +128,7 @@ data Session =
   Session
     { sessionKey :: SessionId
       -- ^ Session ID, primary key.
-    , sessionAuthId :: Maybe ByteString
+    , sessionAuthId :: Maybe AuthId
       -- ^ Value of 'authKey' session key, separate from the rest.
     , sessionData :: SessionMap
       -- ^ Rest of the session data.
@@ -150,7 +155,7 @@ class MonadIO (TransactionM s) => Storage s where
   deleteSession :: s -> SessionId -> TransactionM s ()
 
   -- | Delete all sessions of the given auth ID.
-  deleteAllSessionsOfAuthId :: s -> ByteString -> TransactionM s ()
+  deleteAllSessionsOfAuthId :: s -> AuthId -> TransactionM s ()
 
   -- | Insert a new session.
   insertSession :: s -> Session -> TransactionM s ()
@@ -162,7 +167,9 @@ class MonadIO (TransactionM s) => Storage s where
 ----------------------------------------------------------------------
 
 
--- TODO: do not create empty sessions
+-- TODO: do not create empty sessions.
+
+-- TODO: delete expired sessions.
 
 -- | The server-side session backend needs to maintain some state
 -- in order to work:
