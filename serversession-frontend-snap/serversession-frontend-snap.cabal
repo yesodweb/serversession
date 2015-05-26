@@ -1,0 +1,40 @@
+name:            serversession-frontend-snap
+version:         1.0
+license:         MIT
+license-file:    LICENSE
+author:          Felipe Lessa <felipe.lessa@gmail.com>
+maintainer:      Felipe Lessa <felipe.lessa@gmail.com>
+synopsis:        Snap bindings for serversession.
+category:        Web
+stability:       Stable
+cabal-version:   >= 1.8
+build-type:      Simple
+homepage:        https://github.com/yesodweb/serversession
+description:     API docs and the README are available at <http://www.stackage.org/package/serversession-frontend-snap>
+extra-source-files: README.md
+
+library
+  hs-source-dirs: src
+  build-depends:
+      base                      == 4.*
+    , bytestring
+    , containers
+    , nonce
+    , path-pieces
+    , snap                      == 0.14.*
+    , snap-core                 == 0.9.*
+    , text
+    , time
+    , transformers
+
+    , serversession             == 1.0.*
+  exposed-modules:
+    Web.ServerSession.Frontend.Snap
+    Web.ServerSession.Frontend.Snap.Internal
+  extensions:
+    OverloadedStrings
+  ghc-options:     -Wall
+
+source-repository head
+  type:     git
+  location: https://github.com/yesodweb/serversession

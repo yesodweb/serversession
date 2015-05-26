@@ -28,6 +28,11 @@ to be paired up with two companion packages:
     * `serversession-frontend-yesod`: Support the Yesod
       framework.  Replaces the default `clientsession`.
 
+    * `serversession-frontend-snap`: Support the Snap framework.
+      Replaces the default
+      `Snap.Snaplet.Session.Backends.CookieSession` based on
+      `clientsession`.
+
 If your favorite storage backend or framework is not listed
 above, please send us a pull request!  The `serversession`
 package should work for any session that may be represented as a
