@@ -28,11 +28,11 @@ to be paired up with two companion packages:
   * _Frontend_, bindings for your web framework of choice.
     Currently we support:
 
-    * `serversession-frontend-yesod`: Support the Yesod
+    * `serversession-frontend-yesod`: Support for the Yesod
       framework.  Replaces the default `clientsession`.
 
-    * `serversession-frontend-snap`: Support the Snap framework.
-      Replaces the default
+    * `serversession-frontend-snap`: Support for the Snap
+      framework.  Replaces the default
       `Snap.Snaplet.Session.Backends.CookieSession` based on
       `clientsession`.
 
@@ -96,7 +96,7 @@ though, please bear in mind that:
     backends.
 
   * There's no way of setting timeouts and cookie persistence on
-    a per-session basis, only a global basis.
+    a per-session basis, only on a global basis.
 
 
 ## Background
@@ -121,7 +121,7 @@ However, there are some disadvantages to client-side sessions:
     to maintain long expiration times while still having secure
     logouts.
 
-  * _Cookie size_.  As the cookie contain the whole session data
+  * _Cookie size_.  As the cookie contains the whole session data
     plus some overhead, care must be taken not to create too much
     session data.  Yesod already saves the logged in user ID via
     `yesod-auth` and a XSRF token via `yesod-form`.  This
