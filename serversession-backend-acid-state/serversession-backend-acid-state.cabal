@@ -10,7 +10,7 @@ stability:       Stable
 cabal-version:   >= 1.8
 build-type:      Simple
 homepage:        https://github.com/yesodweb/serversession
-description:     API docs and the README are available at <http://www.stackage.org/package/serversession-backend-acid-state-sql>
+description:     API docs and the README are available at <http://www.stackage.org/package/serversession-backend-acid-state>
 extra-source-files: README.md
 
 library
