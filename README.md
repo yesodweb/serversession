@@ -161,3 +161,27 @@ packages that do not use either `clientsession` or
 
 We apologize in advance if any information above is incorrect.
 Please contact us about any errors.
+
+
+## Versioning
+
+Assuming a version of `MAJOR.MINOR.PATCH`, the following
+conventions are used by the `serversession` family of packages:
+
+  * The PVP's versioning scheme is followed without changes.  The
+    important part is that either `MAJOR` or `MINOR` needs to be
+    increased whenever a breaking change is made, while only
+    `PATCH` needs to be changed otherwise.
+
+  * In addition to the PVP, we increment `MAJOR` only when the
+    `serversession` core package makes a breaking change.  This
+    means that:
+
+    * The `serversession` core package always has `MINOR` equal
+      to `0`.
+
+    * The other `serversession-*` packages have the same `MAJOR`
+      as `serversession`, while being free to have any `MINOR`.
+
+The scheme above is used to ensure consistent versioning of all
+packages even if they're not always released at the same time.
