@@ -1,0 +1,42 @@
+name:            serversession-frontend-wai
+version:         1.0
+license:         MIT
+license-file:    LICENSE
+author:          Felipe Lessa <felipe.lessa@gmail.com>
+maintainer:      Felipe Lessa <felipe.lessa@gmail.com>
+synopsis:        wai-session bindings for serversession.
+category:        Web
+stability:       Stable
+cabal-version:   >= 1.8
+build-type:      Simple
+homepage:        https://github.com/yesodweb/serversession
+description:     API docs and the README are available at <http://www.stackage.org/package/serversession-frontend-wai>
+extra-source-files: README.md
+
+library
+  hs-source-dirs: src
+  build-depends:
+      base                      >= 4.6   && < 5
+    , bytestring
+    , containers
+    , cookie                    >= 0.4
+    , data-default
+    , path-pieces
+    , text
+    , time
+    , transformers
+    , vault
+    , wai
+    , wai-session               == 0.3.*
+
+    , serversession             == 1.0.*
+  exposed-modules:
+    Web.ServerSession.Frontend.Wai
+    Web.ServerSession.Frontend.Wai.Internal
+  extensions:
+    OverloadedStrings
+  ghc-options:     -Wall
+
+source-repository head
+  type:     git
+  location: https://github.com/yesodweb/serversession

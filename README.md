@@ -36,6 +36,10 @@ to be paired up with two companion packages:
       `Snap.Snaplet.Session.Backends.CookieSession` based on
       `clientsession`.
 
+    * `serversession-frontend-wai`: Generic support for WAI
+      applications via the `wai-session` package by using a
+      `vault`.
+
 If your favorite storage backend or framework is not listed
 above, please send us a pull request!  The `serversession`
 package should work for any session that may be represented as a
