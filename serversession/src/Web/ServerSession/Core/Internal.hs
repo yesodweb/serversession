@@ -92,7 +92,7 @@ checkSessionId text = do
   let bs = TE.encodeUtf8 text
   decoded <- either (const Nothing) Just $ B64URL.decode bs
   guard (B8.length decoded == 18)
-  return $ S $ T.toLower text
+  return $ S text
 
 
 -- | Securely generate a new SessionId.
