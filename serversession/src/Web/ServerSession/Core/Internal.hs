@@ -30,7 +30,7 @@ module Web.ServerSession.Core.Internal
   , saveSession
   , SaveSessionToken(..)
   , invalidateIfNeeded
-  , DecomposedSession
+  , DecomposedSession(..)
   , decomposeSession
   , saveSessionOnDb
   , toSessionMap
@@ -383,7 +383,9 @@ cookieExpires state session =
 
 -- | Opaque token containing the necessary information for
 -- 'saveSession' to save the session.
-data SaveSessionToken = SaveSessionToken (Maybe Session) UTCTime
+data SaveSessionToken =
+  SaveSessionToken (Maybe Session) UTCTime
+  deriving (Eq, Show, Typeable)
 
 
 -- | Save the session on the storage backend.  A
@@ -430,7 +432,7 @@ data DecomposedSession =
     { dsAuthId          :: !(Maybe ByteString)
     , dsForceInvalidate :: !ForceInvalidate
     , dsSessionMap      :: !SessionMap
-    } deriving (Show, Typeable)
+    } deriving (Eq, Show, Typeable)
 
 
 -- | Decompose a session (see 'DecomposedSession').
@@ -524,4 +526,4 @@ data ForceInvalidate =
   | DoNotForceInvalidate
     -- ^ Do not force invalidate.  Invalidate only if
     -- automatically.  This is the default.
-    deriving (Eq, Ord, Show, Read, Enum, Typeable)
+    deriving (Eq, Ord, Show, Read, Bounded, Enum, Typeable)
