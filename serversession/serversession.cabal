@@ -30,11 +30,13 @@ library
   exposed-modules:
     Web.ServerSession.Core
     Web.ServerSession.Core.Internal
+    Web.ServerSession.Core.StorageTests
   extensions:
     DeriveDataTypeable
     FlexibleContexts
     OverloadedStrings
     RecordWildCards
+    ScopedTypeVariables
     TypeFamilies
   ghc-options:     -Wall
 
@@ -52,6 +54,7 @@ test-suite tests
   extensions:
     DeriveDataTypeable
     OverloadedStrings
+    TupleSections
     TypeFamilies
   main-is:         Main.hs
   ghc-options:     -Wall -threaded -with-rtsopts=-N
