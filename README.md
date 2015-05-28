@@ -102,6 +102,8 @@ though, please bear in mind that:
   * There's no way of setting timeouts and cookie persistence on
     a per-session basis, only on a global basis.
 
+  * The Redis backend is not set to expire sessions yet.
+
 
 ## Background
 
