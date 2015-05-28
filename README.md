@@ -104,6 +104,10 @@ though, please bear in mind that:
 
   * The Redis backend is not set to expire sessions yet.
 
+  * The `persistent` backend does not automatically create an
+    index for the auth ID.  Thus, by default the
+    `deleteAllSessionsOfAuthId` operation will take linear time.
+
 
 ## Background
 
