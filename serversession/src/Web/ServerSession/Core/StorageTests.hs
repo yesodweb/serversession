@@ -12,7 +12,9 @@ import Control.Monad
 import Web.ServerSession.Core.Internal
 
 import qualified Crypto.Nonce as N
+import qualified Data.ByteString as B
 import qualified Data.Map as M
+import qualified Data.Text as T
 import qualified Data.Time as TI
 
 
@@ -152,6 +154,47 @@ allStorageTests storage it runIO _shouldBe shouldReturn shouldThrow = do
       let s2 = s { sessionAuthId = Nothing }
       run (replaceSession storage s2)
       run (getSession storage sid) `shouldReturn` Just s2
+
+  -- Size and representation limits
+  let trySessionMap vals = do
+        sid <- generateSessionId gen
+        now <- TI.getCurrentTime
+        let session = Session
+              { sessionKey        = sid
+              , sessionAuthId     = Nothing
+              , sessionData       = M.fromList vals
+              , sessionCreatedAt  = now
+              , sessionAccessedAt = now
+              }
+            ver2 = session { sessionData = M.empty }
+        run (getSession storage sid) `shouldReturn` Nothing
+        run (insertSession storage session)
+        run (getSession storage sid) `shouldReturn` (Just session)
+        run (replaceSession storage ver2)
+        run (getSession storage sid) `shouldReturn` (Just ver2)
+        run (replaceSession storage session)
+        run (getSession storage sid) `shouldReturn` (Just session)
+        run (deleteSession storage sid)
+        run (getSession storage sid) `shouldReturn` Nothing
+      mib = 1024*1024
+      showT = T.pack . show
+  it "supports a session with one million small keys" $
+    trySessionMap [(showT i, "bar") | i <- [1..1000000]]
+
+  it "supports a session with one 1 MiB value" $
+    trySessionMap [("foo", B.replicate mib 70)]
+
+  it "supports a session with one hundred 1 MiB values" $
+    trySessionMap [(showT i, B.replicate mib (toEnum i)) | i <- [0..99]]
+
+  it "supports a session with one 100 MiB value" $
+    trySessionMap [("foo", B.replicate (100 * mib) 70)]
+
+  it "supports a session with a 1 MiB key" $
+    trySessionMap [(T.replicate mib "x", "foo")]
+
+  it "supports a session with the key having all possible Unicode code points and value having all possible byte values" $
+    trySessionMap [(T.pack [minBound..maxBound], B.pack [minBound..maxBound])]
 
 
 -- | Generate a random auth ID for our tests.
