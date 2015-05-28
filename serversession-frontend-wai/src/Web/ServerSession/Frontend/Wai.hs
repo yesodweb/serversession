@@ -22,6 +22,7 @@ module Web.ServerSession.Frontend.Wai
   , setAuthKey
   , setIdleTimeout
   , setAbsoluteTimeout
+  , setTimeoutResolution
   , setPersistentCookies
   , setHttpOnlyCookies
   , setSecureCookies

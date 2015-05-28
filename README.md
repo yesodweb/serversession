@@ -91,6 +91,22 @@ Any authentication mechanism is supported as long as it uses a
 session variable.
 
 
+## Storage optimizations
+
+We provide the following storage optimizations:
+
+  * Empty sessions are not saved.  This is done transparently:
+    just insert a session variable and the session will
+    materialize.  Note that if your framework always creates a
+    CSRF token (e.g., Snap), then this optimization will not
+    apply you.
+
+  * You can set the timeout resolution.  Requests made within the
+    timeout resolution that do not change any session variables
+    will not update the session on the database.  By default the
+    timeout resolution is set to 10 minutes.
+
+
 ## Current limitations
 
 These limitations may be addressed in the future.  Right now,

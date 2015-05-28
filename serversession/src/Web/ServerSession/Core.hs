@@ -24,6 +24,7 @@ module Web.ServerSession.Core
   , setAuthKey
   , setIdleTimeout
   , setAbsoluteTimeout
+  , setTimeoutResolution
   , setPersistentCookies
   , setHttpOnlyCookies
   , setSecureCookies

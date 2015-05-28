@@ -11,6 +11,7 @@ module Web.ServerSession.Frontend.Yesod
   , setAuthKey
   , setIdleTimeout
   , setAbsoluteTimeout
+  , setTimeoutResolution
   , setPersistentCookies
   , setHttpOnlyCookies
   , setSecureCookies

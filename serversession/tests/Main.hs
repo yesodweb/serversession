@@ -74,6 +74,7 @@ main = hspec $ parallel $ do
       authKey stnull           `shouldBe` "_ID"
       idleTimeout stnull       `shouldBe` Just (60*60*24*7)
       absoluteTimeout stnull   `shouldBe` Just (60*60*24*60)
+      timeoutResolution stnull `shouldBe` Just (60*10)
       persistentCookies stnull `shouldBe` True
       httpOnlyCookies stnull   `shouldBe` True
       secureCookies stnull     `shouldBe` False
@@ -266,8 +267,19 @@ main = hspec $ parallel $ do
       saveSessionOnDb st fakenow (Just oldSession) emptyDecomp `shouldReturn` Just newSession
       getMockOperations sto `shouldReturn` [ReplaceSession newSession]
 
-    it "does not save session if only difference was accessedAt, and it was less than threshold" $
-      pendingWith "wishlist"
+    it "respects the timeout resolution" $ do
+      (session1, sto, st) <- prepareSaveSessionOnDb
+      let d = DecomposedSession (sessionAuthId session1) DoNotForceInvalidate (sessionData session1)
+      saveSessionOnDb st fakenow (Just session1) d `shouldReturn` Just session1
+      getMockOperations sto `shouldReturn` []
+      let t i = TI.addUTCTime (res + i) (sessionAccessedAt session1)
+          Just res = timeoutResolution st
+      saveSessionOnDb st (t (-1)) (Just session1) d `shouldReturn` Just session1
+      getMockOperations sto `shouldReturn` []
+      -- We don't care about t 0, timeoutResolution is Maybe anyway.
+      let session2 = session1 { sessionAccessedAt = t 1 }
+      saveSessionOnDb st (t 1) (Just session1) d `shouldReturn` Just session2
+      getMockOperations sto `shouldReturn` [ReplaceSession session2]
 
   describe "decomposeSession" $ do
     prop "it is sane when not finding auth key or force invalidate key" $

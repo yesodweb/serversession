@@ -11,6 +11,7 @@ module Web.ServerSession.Frontend.Snap
   , setAuthKey
   , setIdleTimeout
   , setAbsoluteTimeout
+  , setTimeoutResolution
   , setPersistentCookies
   , setHttpOnlyCookies
   , setSecureCookies

@@ -17,6 +17,7 @@ module Web.ServerSession.Core.Internal
   , setAuthKey
   , setIdleTimeout
   , setAbsoluteTimeout
+  , setTimeoutResolution
   , setPersistentCookies
   , setHttpOnlyCookies
   , setSecureCookies
@@ -45,7 +46,7 @@ import Data.ByteString (ByteString)
 import Data.Maybe (catMaybes, fromMaybe, isJust)
 import Data.Text (Text)
 import Data.Time (UTCTime, getCurrentTime)
-import Data.Time.Clock (NominalDiffTime, addUTCTime)
+import Data.Time.Clock (NominalDiffTime, addUTCTime, diffUTCTime)
 import Data.Typeable (Typeable)
 import Web.PathPieces (PathPiece(..))
 
@@ -249,6 +250,8 @@ instance E.Exception StorageException where
 --
 --   * Idle and absolute timeouts ('setIdleTimeout' and 'setAbsoluteTimeout').
 --
+--   * Timeout resolution ('setTimeoutResolution').
+--
 --   * Whether cookies should be persistent
 --   ('setPersistentCookies'), HTTP-only ('setHTTPOnlyCookies')
 --   and/or secure ('setSecureCookies').
@@ -262,6 +265,7 @@ data State s =
     , authKey           :: !Text
     , idleTimeout       :: !(Maybe NominalDiffTime)
     , absoluteTimeout   :: !(Maybe NominalDiffTime)
+    , timeoutResolution :: !(Maybe NominalDiffTime)
     , persistentCookies :: !Bool
     , httpOnlyCookies   :: !Bool
     , secureCookies     :: !Bool
@@ -280,6 +284,7 @@ createState sto = do
     , authKey           = "_ID"
     , idleTimeout       = Just $ 60*60*24*7  -- 7 days
     , absoluteTimeout   = Just $ 60*60*24*60 -- 60 days
+    , timeoutResolution = Just $ 60*10       -- 10 minutes
     , persistentCookies = True
     , httpOnlyCookies   = True
     , secureCookies     = False
@@ -338,6 +343,35 @@ setAbsoluteTimeout :: Maybe NominalDiffTime -> State s -> State s
 setAbsoluteTimeout (Just d) _ | d <= 0 = error "serversession/setAbsoluteTimeout: Timeout should be positive."
 setAbsoluteTimeout val state = state { absoluteTimeout = val }
 
+
+-- | Set the timeout resolution.
+--
+-- We need to save both the creation and last access times on
+-- sessions in order to implement idle and absolute timeouts.
+-- This means that we have to save the updated session on the
+-- storage backend even if the request didn't change any session
+-- variable, if only to update the last access time.
+--
+-- This setting provides an optimization where the session is not
+-- updated on the storage backend provided that:
+--
+--   * No session variables were changed.
+--
+--   * The difference between the /current/ time and the last
+--   /saved/ access time is less than the timeout resolution.
+--
+-- For example, with a timeout resolution of 1 minute, every
+-- request that does not change the session variables within 1
+-- minute of the last update will not generate any updates on the
+-- storage backend.
+--
+-- If the timeout resolution is @Nothing@, then this optimization
+-- becomes disabled and the session will always be updated.
+--
+-- Defaults to 10 minutes.
+setTimeoutResolution :: Maybe NominalDiffTime -> State s -> State s
+setTimeoutResolution (Just d) _ | d <= 0 = error "serversession/setTimeoutResolution: Resolution should be positive."
+setTimeoutResolution val state = state { timeoutResolution = val }
 
 -- | Set whether by default cookies should be persistent (@True@) or
 -- non-persistent (@False@).  Persistent cookies are saved across
@@ -521,7 +555,9 @@ decomposeSession state sm1 =
 -- | Save a session on the database.  If an old session is
 -- supplied, it is replaced, otherwise a new session is
 -- generated.  If the session is empty, it is not saved and
--- @Nothing@ is returned.
+-- @Nothing@ is returned.  If the timeout resolution optimization
+-- is applied (cf. 'setTimeoutResolution'), the old session is
+-- returned and no update is made.
 saveSessionOnDb
   :: Storage s
   => State s
@@ -533,6 +569,14 @@ saveSessionOnDb _ _ Nothing (DecomposedSession Nothing _ m)
   -- Return Nothing without doing anything whenever the session
   -- is empty (including auth ID) and there was no prior session.
   | M.null m = return Nothing
+saveSessionOnDb State { timeoutResolution = Just res } now (Just old) (DecomposedSession authId _ sessionMap)
+  -- If the data is the same and the old access time is within
+  -- the timeout resolution, just return the old session without
+  -- doing anything else.
+  | sessionData   old == sessionMap &&
+    sessionAuthId old == authId &&
+    abs (diffUTCTime now (sessionAccessedAt old)) < res =
+      return (Just old)
 saveSessionOnDb state now maybeInput DecomposedSession {..} = do
   -- Generate properties if needed or take them from previous
   -- saved session.
