@@ -84,13 +84,19 @@ allStorageTests storage it runIO _shouldBe shouldReturn shouldThrow = do
   it "deleteAllSessionsOfAuthId should delete the relevant sessions (but no more)" $ do
     replicateM_ 20 $ do
       master <- generateSession gen HasAuthId
-      let Just  authId = sessionAuthId master
-      slaves <- (map $ \s -> s { sessionAuthId = Just authId }) <$>
-                replicateM 200 (generateSession gen NoAuthId)
+      let Just authId = sessionAuthId master
+      preslaves <- replicateM 200 (generateSession gen NoAuthId)
+      let slaves = (\s -> s { sessionAuthId = Just authId }) <$> preslaves
       others <- (++) <$> replicateM 30 (generateSession gen HasAuthId)
                      <*> replicateM 30 (generateSession gen NoAuthId)
       let allS = master : slaves ++ others
-      run (mapM_ (insertSession storage) allS)
+
+      -- Insert preslaves then replace them with slaves to
+      -- further test if the storage backend is able to maintain
+      -- its invariants regarding auth IDs.
+      run (mapM_ (insertSession storage) (master : preslaves ++ others))
+      run (mapM_ (replaceSession storage) slaves)
+
       run (mapM (getSession storage . sessionKey) allS) `shouldReturn` (Just <$> allS)
       run (deleteAllSessionsOfAuthId storage authId)
       run (mapM (getSession storage . sessionKey) allS) `shouldReturn`
