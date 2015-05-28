@@ -8,6 +8,7 @@ import Test.Hspec
 import Test.Hspec.QuickCheck
 import Web.PathPieces
 import Web.ServerSession.Core.Internal
+import Web.ServerSession.Core.StorageTests
 
 import qualified Control.Exception as E
 import qualified Crypto.Nonce as N
@@ -235,7 +236,8 @@ main = hspec $ parallel $ do
         in toSessionMap stnull s Q.=== M.adjust (const authId) k (sessionData s)
 
   describe "MockStorage" $ do
-    it "passes the storage test" pending
+    sto <- runIO emptyMockStorage
+    parallel $ allStorageTests sto it runIO shouldBe shouldReturn shouldThrow
 
 
 -- | Used to generate session maps on QuickCheck properties.
@@ -291,12 +293,25 @@ instance Storage MockStorage where
     -- Data.IORef's documentation).
     M.lookup sid <$> I.atomicModifyIORef' (mockSessions sto) (\a -> (a, a))
   deleteSession sto sid =
-    I.modifyIORef (mockSessions sto) (M.delete sid)
+    I.atomicModifyIORef' (mockSessions sto) ((, ()) . M.delete sid)
   deleteAllSessionsOfAuthId sto authId =
-    I.modifyIORef (mockSessions sto) (M.filter (\s -> sessionAuthId s == Just authId))
+    I.atomicModifyIORef' (mockSessions sto) ((, ()) . M.filter (\s -> sessionAuthId s /= Just authId))
   insertSession sto session =
-    I.modifyIORef (mockSessions sto) (M.insert (sessionKey session) session)
-  replaceSession = insertSession
+    join $ I.atomicModifyIORef' (mockSessions sto) $ \oldMap ->
+      let (moldVal, newMap) =
+            M.insertLookupWithKey (\_ v _ -> v) (sessionKey session) session oldMap
+      in maybe
+           (newMap, return ())
+           (\oldVal -> (oldMap, E.throwIO $ SessionAlreadyExists oldVal session))
+           moldVal
+  replaceSession sto session =
+    join $ I.atomicModifyIORef' (mockSessions sto) $ \oldMap ->
+      let (moldVal, newMap) =
+            M.updateLookupWithKey (\_ _ -> Just session) (sessionKey session) oldMap
+      in maybe
+           (oldMap, E.throwIO $ SessionDoesNotExist session)
+           (const (newMap, return ()))
+           moldVal
 
 
 -- | Creates empty mock storage.
