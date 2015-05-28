@@ -189,13 +189,51 @@ main = hspec $ parallel $ do
       in cookieExpires st' session `shouldSatisfy` maybe False (>= distantFuture)
 
   describe "saveSession" $ do
-    it "should have more tests" pending
+    -- We already test the other functions that saveSession
+    -- calls.  A single unit test just to be sure everything is
+    -- connected should be enough.
+    it "works for a complex example" pending
 
   describe "invalidateIfNeeded" $ do
     it "should have more tests" pending
 
   describe "saveSessionOnDb" $ do
-    it "should have more tests" pending
+    it "inserts new sessions when there wasn't an old one" $ do
+      sto <- emptyMockStorage
+      st  <- createState sto
+      let d = DecomposedSession a DoNotForceInvalidate m
+          m = M.fromList [("a", "b"), ("c", "d")]
+          a = Just "auth"
+      session <- saveSessionOnDb st fakenow Nothing d
+      getMockOperations sto `shouldReturn` [InsertSession session]
+      sessionAuthId     session `shouldBe` a
+      sessionData       session `shouldBe` m
+      sessionCreatedAt  session `shouldBe` fakenow
+      sessionAccessedAt session `shouldBe` fakenow
+
+    it "replaces sesssions when there was an old one" $ do
+      let oldSession = Session
+            { sessionKey        = S "123456789-123456789-1234"
+            , sessionAuthId     = Just "auth"
+            , sessionData       = M.fromList [("a", "b"), ("c", "d")]
+            , sessionCreatedAt  = TI.addUTCTime (-10) fakenow
+            , sessionAccessedAt = TI.addUTCTime (-5)  fakenow }
+      sto <- prepareMockStorage [oldSession]
+      st  <- createState sto
+      let d = DecomposedSession Nothing DoNotForceInvalidate m
+          m = M.fromList [("a", "b"), ("x", "y")]
+      session <- saveSessionOnDb st fakenow (Just oldSession) d
+      getMockOperations sto `shouldReturn` [ReplaceSession session]
+      session `shouldBe` oldSession
+                           { sessionData       = m
+                           , sessionAuthId     = Nothing
+                           , sessionAccessedAt = fakenow }
+
+    it "does not save session if it's empty and there wasn't an old one" $
+      pendingWith "wishlist"
+
+    it "does not save session if only difference was accessedAt, and it was less than threshold" $
+      pendingWith "wishlist"
 
   describe "decomposeSession" $ do
     prop "it is sane when not finding auth key or force invalidate key" $
@@ -277,26 +315,40 @@ instance E.Exception TNTExplosion where
 ----------------------------------------------------------------------
 
 
+-- | A mock operation that was executed.
+data MockOperation =
+    GetSession SessionId
+  | DeleteSession SessionId
+  | DeleteAllSessionsOfAuthId AuthId
+  | InsertSession Session
+  | ReplaceSession Session
+    deriving (Eq, Show, Typeable)
+
+
 -- | A mock storage used just for testing.
 data MockStorage =
   MockStorage
-    { mockSessions :: I.IORef (M.Map SessionId Session)
+    { mockSessions   :: I.IORef (M.Map SessionId Session)
+    , mockOperations :: I.IORef [MockOperation]
     }
   deriving (Typeable)
 
 instance Storage MockStorage where
   type TransactionM MockStorage = IO
   runTransactionM _ = id
-  getSession sto sid =
+  getSession sto sid = do
     -- We need to use atomicModifyIORef instead of readIORef
     -- because latter may be reordered (cf. "Memory Model" on
     -- Data.IORef's documentation).
+    addMockOperation sto (GetSession sid)
     M.lookup sid <$> I.atomicModifyIORef' (mockSessions sto) (\a -> (a, a))
-  deleteSession sto sid =
+  deleteSession sto sid = do
     I.atomicModifyIORef' (mockSessions sto) ((, ()) . M.delete sid)
-  deleteAllSessionsOfAuthId sto authId =
+    addMockOperation sto (DeleteSession sid)
+  deleteAllSessionsOfAuthId sto authId = do
     I.atomicModifyIORef' (mockSessions sto) ((, ()) . M.filter (\s -> sessionAuthId s /= Just authId))
-  insertSession sto session =
+    addMockOperation sto (DeleteAllSessionsOfAuthId authId)
+  insertSession sto session = do
     join $ I.atomicModifyIORef' (mockSessions sto) $ \oldMap ->
       let (moldVal, newMap) =
             M.insertLookupWithKey (\_ v _ -> v) (sessionKey session) session oldMap
@@ -304,7 +356,8 @@ instance Storage MockStorage where
            (newMap, return ())
            (\oldVal -> (oldMap, E.throwIO $ SessionAlreadyExists oldVal session))
            moldVal
-  replaceSession sto session =
+    addMockOperation sto (InsertSession session)
+  replaceSession sto session = do
     join $ I.atomicModifyIORef' (mockSessions sto) $ \oldMap ->
       let (moldVal, newMap) =
             M.insertLookupWithKey (\_ v _ -> v) (sessionKey session) session oldMap
@@ -312,6 +365,7 @@ instance Storage MockStorage where
            (oldMap, E.throwIO $ SessionDoesNotExist session)
            (const (newMap, return ()))
            moldVal
+    addMockOperation sto (ReplaceSession session)
 
 
 -- | Creates empty mock storage.
@@ -319,6 +373,7 @@ emptyMockStorage :: IO MockStorage
 emptyMockStorage =
   MockStorage
     <$> I.newIORef M.empty
+    <*> I.newIORef []
 
 
 -- | Creates mock storage with the given sessions already existing.
@@ -327,3 +382,14 @@ prepareMockStorage sessions = do
   sto <- emptyMockStorage
   I.writeIORef (mockSessions sto) (M.fromList [(sessionKey s, s) | s <- sessions])
   return sto
+
+
+-- | Get the list of mock operations that were made and clear
+-- them.  The operations are listed in chronological order.
+getMockOperations :: MockStorage -> IO [MockOperation]
+getMockOperations = flip I.atomicModifyIORef' ((,) []) . mockOperations
+
+
+-- | Add a mock operations to the log.
+addMockOperation :: MockStorage -> MockOperation -> IO ()
+addMockOperation sto op = I.atomicModifyIORef' (mockOperations sto) $ \ops -> (op:ops, ())
