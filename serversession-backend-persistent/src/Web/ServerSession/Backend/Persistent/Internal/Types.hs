@@ -8,19 +8,20 @@ module Web.ServerSession.Backend.Persistent.Internal.Types
   , SessionMapJ(..)
   ) where
 
+import Control.Arrow (first)
 import Control.Monad ((>=>), mzero)
 import Data.ByteString (ByteString)
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import Database.Persist (PersistField(..))
-import Database.Persist.Sql (PersistFieldSql(..))
+import Database.Persist.Sql (PersistFieldSql(..), SqlType(..))
 import Web.ServerSession.Core
 import Web.ServerSession.Core.Internal (SessionId(..))
 
 import qualified Data.Aeson as A
-import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Base64.URL as B64URL
 import qualified Data.Map as M
+import qualified Data.Serialize as S
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 
@@ -65,24 +66,22 @@ instance A.ToJSON ByteStringJ where
 ----------------------------------------------------------------------
 
 
--- | Newtype of a 'SessionMap' that serializes as a JSON on
--- the database.  We use JSON because it's easy to inspect for a
--- human.
+-- | Newtype of a 'SessionMap' that serializes using @cereal@ on
+-- the database.  We tried to use @aeson@ but @cereal@ is twice
+-- faster and uses half the memory for this use case.
 newtype SessionMapJ = M { unM :: SessionMap }
   deriving (Eq, Ord, Show, Read, Typeable)
 
-encodeT :: A.ToJSON a => a -> Text
-encodeT = TE.decodeUtf8 . L.toStrict . A.encode
-
-decodeT :: A.FromJSON a => Text -> Either Text a
-decodeT = either (Left . T.pack) Right . A.eitherDecode . L.fromStrict . TE.encodeUtf8
-
 instance PersistField SessionMapJ where
-  toPersistValue = toPersistValue . encodeT
-  fromPersistValue = fromPersistValue >=> decodeT
+  toPersistValue   = toPersistValue . S.encode
+  fromPersistValue = fromPersistValue >=> (either (Left . T.pack) Right . S.decode)
 
 instance PersistFieldSql SessionMapJ where
-  sqlType p = sqlType (fmap encodeT p)
+  sqlType _ = SqlBlob
+
+instance S.Serialize SessionMapJ where
+  put = S.put . map (first TE.encodeUtf8) . M.toAscList . unM
+  get = M . M.fromAscList . map (first TE.decodeUtf8) <$> S.get
 
 instance A.FromJSON SessionMapJ where
   parseJSON = fmap fixup . A.parseJSON

@@ -20,6 +20,7 @@ library
     , aeson
     , base64-bytestring         == 1.0.*
     , bytestring
+    , cereal                    >= 0.4
     , containers
     , path-pieces
     , persistent                == 2.1.*
@@ -52,7 +53,7 @@ test-suite tests
   hs-source-dirs:  tests
   build-depends:
 
-      base, aeson, base64-bytestring, bytestring, containers,
+      base, aeson, base64-bytestring, bytestring, cereal, containers,
       path-pieces, persistent, persistent-template, text, time,
       transformers
 
