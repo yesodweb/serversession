@@ -307,7 +307,7 @@ instance Storage MockStorage where
   replaceSession sto session =
     join $ I.atomicModifyIORef' (mockSessions sto) $ \oldMap ->
       let (moldVal, newMap) =
-            M.updateLookupWithKey (\_ _ -> Just session) (sessionKey session) oldMap
+            M.insertLookupWithKey (\_ v _ -> v) (sessionKey session) session oldMap
       in maybe
            (oldMap, E.throwIO $ SessionDoesNotExist session)
            (const (newMap, return ()))

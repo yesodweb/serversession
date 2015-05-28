@@ -139,7 +139,7 @@ replaceSession :: SS.Session -> Update ServerSessionAcidState ()
 replaceSession session = do
   -- Check that the old session exists while replacing it.
   ServerSessionAcidState sits aits <- get
-  let (moldSession, sits') = M.updateLookupWithKey (\_ _ -> Just session) sid sits
+  let (moldSession, sits') = M.insertLookupWithKey (\_ v _ -> v) sid session sits
       sid = SS.sessionKey session
   case moldSession of
     Nothing -> E.throw $ SS.SessionDoesNotExist session
