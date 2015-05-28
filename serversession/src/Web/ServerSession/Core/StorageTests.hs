@@ -85,10 +85,13 @@ allStorageTests storage it runIO _shouldBe shouldReturn shouldThrow = do
     replicateM_ 20 $ do
       master <- generateSession gen HasAuthId
       let Just authId = sessionAuthId master
-      preslaves <- replicateM 200 (generateSession gen NoAuthId)
+      preslaves <-
+        (++) <$> replicateM 100 (generateSession gen HasAuthId)
+             <*> replicateM 100 (generateSession gen NoAuthId)
       let slaves = (\s -> s { sessionAuthId = Just authId }) <$> preslaves
-      others <- (++) <$> replicateM 30 (generateSession gen HasAuthId)
-                     <*> replicateM 30 (generateSession gen NoAuthId)
+      others <-
+        (++) <$> replicateM 30 (generateSession gen HasAuthId)
+             <*> replicateM 30 (generateSession gen NoAuthId)
       let allS = master : slaves ++ others
 
       -- Insert preslaves then replace them with slaves to
