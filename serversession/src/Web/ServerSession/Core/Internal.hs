@@ -9,6 +9,7 @@ module Web.ServerSession.Core.Internal
   , AuthId
   , Session(..)
   , Storage(..)
+  , StorageException(..)
 
   , State(..)
   , createState
@@ -48,6 +49,7 @@ import Data.Time.Clock (NominalDiffTime, addUTCTime)
 import Data.Typeable (Typeable)
 import Web.PathPieces (PathPiece(..))
 
+import qualified Control.Exception as E
 import qualified Crypto.Nonce as N
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Base64.URL as B64URL
@@ -148,20 +150,83 @@ class MonadIO (TransactionM s) => Storage s where
   -- | Run a transaction on the IO monad.
   runTransactionM :: s -> TransactionM s a -> IO a
 
-  -- | Get the session for the given session ID.
+  -- | Get the session for the given session ID.  Returns
+  -- @Nothing@ if the session is not found.
   getSession :: s -> SessionId -> TransactionM s (Maybe Session)
 
-  -- | Delete the session with given session ID.
+  -- | Delete the session with given session ID.  Does not do
+  -- anything if the session is not found.
   deleteSession :: s -> SessionId -> TransactionM s ()
 
-  -- | Delete all sessions of the given auth ID.
+  -- | Delete all sessions of the given auth ID.  Does not do
+  -- anything if there are no sessions of the given auth ID.
   deleteAllSessionsOfAuthId :: s -> AuthId -> TransactionM s ()
 
-  -- | Insert a new session.
+  -- | Insert a new session.  Throws 'SessionAlreadyExists' if
+  -- there already exists a session with the same session ID (we
+  -- only call this method after generating a fresh session ID).
   insertSession :: s -> Session -> TransactionM s ()
 
-  -- | Replace the contents of a session.
+  -- | Replace the contents of a session.  Throws
+  -- 'SessionDoesNotExist' if there is no session with the given
+  -- session ID (we only call this method when updating a session
+  -- that is known to exist).
+  --
+  -- It is possible to have concurrent requests using the same
+  -- session ID such that:
+  --
+  -- @
+  -- request 1: loadSession
+  --                        request 2: loadSession
+  --                        request 2: forceInvalidate
+  --                        request 2: saveSession
+  -- request 1: saveSession
+  -- @
+  --
+  -- The request 2's call to 'saveSession' will have called
+  -- 'deleteSession' as invalidation was forced.  However,
+  -- request 1 has no idea and will try to @replaceSession@.  The
+  -- following behaviors are possible:
+  --
+  --   1. Make @replaceSession@ insert the session again.
+  --   However, this will undo the invalidation of request 2.  As
+  --   invalidations are done for security reasons, this is a bad
+  --   idea.
+  --
+  --   2. Make @replaceSession@ silently discard the session.
+  --   The reasoning is that, as the session was going to be
+  --   invalidated if request 2 came after request 1, we can
+  --   discard its contents.  However, we can't be sure that
+  --   request 2 would have had the same effect if it had seen
+  --   the session changes made by request 1 (and vice versa).
+  --
+  --   3. Make @replaceSession@ throw an error.  This error is
+  --   going to be unrecoverable since usually the session
+  --   processing is done at the end of the request processing by
+  --   the web framework, thus leading to a 500 Internal Server
+  --   Error.  However, this signals to the caller that something
+  --   went wrong, which is correct.
+  --
+  -- Most of the time this discussion does not matter.
+  -- Invalidations usually occur at times where only one request
+  -- is flying.
   replaceSession :: s -> Session -> TransactionM s ()
+
+
+-- | Common exceptions that may be thrown by any storage.
+data StorageException =
+    -- | Exception thrown by 'insertSession' whenever a session
+    -- with same ID already exists.
+    SessionAlreadyExists
+      { seExistingSession :: Session
+      , seNewSession      :: Session }
+    -- | Exception thrown by 'replaceSession' whenever trying to
+    -- replace a session that is not present on the storage.
+  | SessionDoesNotExist
+      { seNewSession      :: Session }
+    deriving (Show, Typeable)
+
+instance E.Exception StorageException where
 
 
 ----------------------------------------------------------------------

@@ -5,6 +5,7 @@ module Web.ServerSession.Core
   , AuthId
   , Session(..)
   , Storage(..)
+  , StorageException(..)
 
     -- * For serversession frontends
   , SessionMap
