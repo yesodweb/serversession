@@ -12,12 +12,14 @@ module Web.ServerSession.Backend.Persistent.Internal.Impl
   ) where
 
 import Control.Monad (void)
+import Control.Monad.IO.Class (liftIO)
 import Data.Time (UTCTime)
 import Data.Typeable (Typeable)
 import Database.Persist (PersistEntity(..))
 import Database.Persist.TH (mkPersist, mkSave, persistLowerCase, share, sqlSettings)
 import Web.ServerSession.Core
 
+import qualified Control.Exception as E
 import qualified Database.Persist as P
 import qualified Database.Persist.Sql as P
 
@@ -82,5 +84,16 @@ instance Storage SqlStorage where
   getSession     _ = fmap (fmap fromPersistentSession) . P.get . psKey
   deleteSession  _ = P.delete . psKey
   deleteAllSessionsOfAuthId _ authId = P.deleteWhere [PersistentSessionAuthId P.==. Just (B authId)]
-  insertSession  _ = void . P.insert . toPersistentSession
-  replaceSession _ = \session -> P.replace (psKey $ sessionKey session) $ toPersistentSession session
+  insertSession s session = do
+    mold <- getSession s (sessionKey session)
+    maybe
+      (void $ P.insert $ toPersistentSession session)
+      (\old -> liftIO $ E.throwIO $ SessionAlreadyExists old session)
+      mold
+  replaceSession s session = do
+    let key = psKey $ sessionKey session
+    mold <- P.get key
+    maybe
+      (liftIO $ E.throwIO $ SessionDoesNotExist session)
+      (\_old -> void $ P.replace key $ toPersistentSession session)
+      mold

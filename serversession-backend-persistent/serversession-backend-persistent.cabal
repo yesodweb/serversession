@@ -26,6 +26,7 @@ library
     , persistent-template       == 2.1.*
     , text
     , time
+    , transformers
 
     , serversession             == 1.0.*
   exposed-modules:
@@ -52,7 +53,8 @@ test-suite tests
   build-depends:
 
       base, aeson, base64-bytestring, bytestring, containers,
-      path-pieces, persistent, persistent-template, text, time
+      path-pieces, persistent, persistent-template, text, time,
+      transformers
 
     , hspec                     >= 2.1 && < 3
     , monad-logger
