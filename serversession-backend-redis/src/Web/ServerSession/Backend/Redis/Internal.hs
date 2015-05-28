@@ -159,7 +159,7 @@ printUTCTime = B8.pack . TI.formatTime TI.defaultTimeLocale timeFormat
 
 -- | Time format used when storing 'UTCTime'.
 timeFormat :: String
-timeFormat = "%Y-%m-%dT%H:%M:%S.%q"
+timeFormat = "%Y-%m-%dT%H:%M:%S%Q"
 
 
 ----------------------------------------------------------------------
