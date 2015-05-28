@@ -286,7 +286,10 @@ instance Storage MockStorage where
   type TransactionM MockStorage = IO
   runTransactionM _ = id
   getSession sto sid =
-    M.lookup sid <$> I.readIORef (mockSessions sto)
+    -- We need to use atomicModifyIORef instead of readIORef
+    -- because latter may be reordered (cf. "Memory Model" on
+    -- Data.IORef's documentation).
+    M.lookup sid <$> I.atomicModifyIORef' (mockSessions sto) (\a -> (a, a))
   deleteSession sto sid =
     I.modifyIORef (mockSessions sto) (M.delete sid)
   deleteAllSessionsOfAuthId sto authId =

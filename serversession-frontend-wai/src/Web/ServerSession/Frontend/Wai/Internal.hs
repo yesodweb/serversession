@@ -60,7 +60,7 @@ sessionStore state =
     (sessionMap, saveSessionToken) <- loadSession state mcookieVal
     sessionRef <- I.newIORef sessionMap
     let save = do
-          sessionMap' <- I.readIORef sessionRef
+          sessionMap' <- I.atomicModifyIORef' sessionRef $ \a -> (a, a)
           session <- saveSession state saveSessionToken sessionMap'
           return $ TE.encodeUtf8 $ toPathPiece $ sessionKey session
     return (mkSession sessionRef, save)
@@ -70,7 +70,10 @@ sessionStore state =
 -- session data.
 mkSession :: MonadIO m => I.IORef SessionMap -> WS.Session m Text ByteString
 mkSession sessionRef =
-  ( \k   -> M.lookup k <$> liftIO (I.readIORef sessionRef)
+  -- We need to use atomicModifyIORef instead of readIORef
+  -- because latter may be reordered (cf. "Memory Model" on
+  -- Data.IORef's documentation).
+  ( \k   -> M.lookup k <$> liftIO (I.atomicModifyIORef' sessionRef $ \a -> (a, a))
   , \k v -> liftIO (I.atomicModifyIORef' sessionRef $ flip (,) () . M.insert k v)
   )
 
