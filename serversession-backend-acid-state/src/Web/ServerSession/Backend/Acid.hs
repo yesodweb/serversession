@@ -12,7 +12,7 @@
 -- withSessionStorage =
 --   bracket
 --     ('AcidStorage' \<$\> openLocalState 'emptyState')
---     createCheckpointAndClose
+--     (createCheckpointAndClose . 'acidState')
 -- @
 module Web.ServerSession.Backend.Acid
   ( AcidStorage(..)
