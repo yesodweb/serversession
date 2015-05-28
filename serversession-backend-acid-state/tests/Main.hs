@@ -13,9 +13,9 @@ main =
   E.bracket
     (AcidStorage <$> openLocalState emptyState)
     (createCheckpointAndClose . acidState) $
-    \acidLocal -> hspec $ parallel $ do
+    \acidLocal -> hspec $ do
       acidMem <- runIO $ AcidStorage <$> openMemoryState emptyState
       describe "AcidStorage on memory only" $
-        allStorageTests acidMem it runIO shouldBe shouldReturn shouldThrow
+        allStorageTests acidMem it runIO parallel shouldBe shouldReturn shouldThrow
       describe "AcidStorage on local storage" $
-        allStorageTests acidLocal it runIO shouldBe shouldReturn shouldThrow
+        allStorageTests acidLocal it runIO parallel shouldBe shouldReturn shouldThrow

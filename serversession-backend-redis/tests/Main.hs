@@ -8,5 +8,5 @@ import Web.ServerSession.Core.StorageTests
 main :: IO ()
 main = do
   conn <- connect defaultConnectInfo
-  hspec $ describe "RedisStorage" $ parallel $
-    allStorageTests (RedisStorage conn) it runIO shouldBe shouldReturn shouldThrow
+  hspec $ describe "RedisStorage" $
+    allStorageTests (RedisStorage conn) it runIO parallel shouldBe shouldReturn shouldThrow

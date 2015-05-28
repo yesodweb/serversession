@@ -16,7 +16,7 @@ import qualified Database.Persist.Sql as P
 P.mkMigrate "migrateAll" serverSessionDefs
 
 main :: IO ()
-main = hspec $ parallel $
+main = hspec $
   forM_ [ ("PostgreSQL", createPostgresqlPool "host=localhost user=test dbname=test password=test" 20)
         , ("SQLite",     createSqlitePool "test.db" 1) ] $
     \(rdbms, createPool) ->
@@ -32,4 +32,4 @@ main = hspec $ parallel $
           pendingWith (show exc)
       Right pool ->
         afterAll_ (destroyAllResources pool) $
-          parallel $ allStorageTests (SqlStorage pool) it runIO shouldBe shouldReturn shouldThrow
+          allStorageTests (SqlStorage pool) it runIO parallel shouldBe shouldReturn shouldThrow

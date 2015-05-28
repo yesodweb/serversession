@@ -275,7 +275,7 @@ main = hspec $ parallel $ do
 
   describe "MockStorage" $ do
     sto <- runIO emptyMockStorage
-    parallel $ allStorageTests sto it runIO shouldBe shouldReturn shouldThrow
+    allStorageTests sto it runIO parallel shouldBe shouldReturn shouldThrow
 
 
 -- | Used to generate session maps on QuickCheck properties.

@@ -26,136 +26,143 @@ import qualified Data.Time as TI
 -- called:
 --
 -- @
--- parallel $ allStorageTests myStorageBackend it runIO shouldBe shouldReturn shouldThrow
+-- allStorageTests myStorageBackend it runIO parallel shouldBe shouldReturn shouldThrow
 -- @
 --
 -- Some storage backends are difficult to test with a clean
 -- slate.  For this reason, this collection of tests works with
--- unclean storage backends.  In addition, this test suite can be
--- executed in parallel, there are no dependencies between tests.
--- In order to enforce these claims, we always test with an
--- unclean storage backend by getting a single reference to it
--- instead of asking for a function that creates storage backends
--- and calling it on every test.
+-- unclean storage backends.  In order to enforce these claims,
+-- we always test with an unclean storage backend by getting a
+-- single reference to it instead of asking for a function that
+-- creates storage backends and calling it on every test.
+--
+-- In addition, this test suite can be executed in parallel,
+-- there are no dependencies between tests.  However, some tests
+-- require a large amount of memory so we try to run them
+-- sequentially in order to reduce the peak memory usage of the
+-- test suite.
 allStorageTests
   :: forall m s. (Monad m, Storage s)
   => s                                                         -- ^ Storage backend.
   -> (String -> IO () -> m ())                                 -- ^ @hspec@'s it.
   -> (forall a. IO a -> m a)                                   -- ^ @hspec@'s runIO.
+  -> (m () -> m ())                                            -- ^ @hspec@'s parallel
   -> (forall a. (Show a, Eq a) => a    -> a -> IO ())          -- ^ @hspec@'s shouldBe.
   -> (forall a. (Show a, Eq a) => IO a -> a -> IO ())          -- ^ @hspec@'s shouldReturn.
   -> (forall a e. Exception e => IO a -> (e -> Bool) -> IO ()) -- ^ @hspec@'s shouldThrow.
   -> m ()
-allStorageTests storage it runIO _shouldBe shouldReturn shouldThrow = do
+allStorageTests storage it runIO parallel _shouldBe shouldReturn shouldThrow = do
   let run :: forall a. TransactionM s a -> IO a
       run = runTransactionM storage
 
   gen <- runIO N.new
 
-  -- runTransactionM
-  it "runTransactionM should be sane" $ do
-    run (return 42) `shouldReturn` (42 :: Int)
+  parallel $ do
+    -- runTransactionM
+    it "runTransactionM should be sane" $ do
+      run (return 42) `shouldReturn` (42 :: Int)
 
-  -- getSession
-  it "getSession should return Nothing for inexistent sessions" $ do
-    replicateM_ 1000 $
-      (generateSessionId gen >>= run . getSession storage)
-        `shouldReturn` Nothing
+    -- getSession
+    it "getSession should return Nothing for inexistent sessions" $ do
+      replicateM_ 1000 $
+        (generateSessionId gen >>= run . getSession storage)
+          `shouldReturn` Nothing
 
-  -- deleteSession
-  it "deleteSession should not fail for inexistent sessions" $ do
-    replicateM_ 1000 $
-      generateSessionId gen >>= run . deleteSession storage
+    -- deleteSession
+    it "deleteSession should not fail for inexistent sessions" $ do
+      replicateM_ 1000 $
+        generateSessionId gen >>= run . deleteSession storage
 
-  it "deleteSession should delete the session" $ do
-    replicateM_ 20 $ do
-      s <- generateSession gen HasAuthId
-      let sid = sessionKey s
-      run (getSession storage sid) `shouldReturn` Nothing
-      run (insertSession storage s)
-      run (getSession storage sid) `shouldReturn` Just s
-      run (deleteSession storage sid)
-      run (getSession storage sid) `shouldReturn` Nothing
+    it "deleteSession should delete the session" $ do
+      replicateM_ 20 $ do
+        s <- generateSession gen HasAuthId
+        let sid = sessionKey s
+        run (getSession storage sid) `shouldReturn` Nothing
+        run (insertSession storage s)
+        run (getSession storage sid) `shouldReturn` Just s
+        run (deleteSession storage sid)
+        run (getSession storage sid) `shouldReturn` Nothing
 
 
-  -- deleteAllSessionsOfAuthId
-  it "deleteAllSessionsOfAuthId should not fail for inexistent auth IDs" $ do
-    replicateM_ 1000 $
-      generateAuthId gen >>= run . deleteAllSessionsOfAuthId storage
+    -- deleteAllSessionsOfAuthId
+    it "deleteAllSessionsOfAuthId should not fail for inexistent auth IDs" $ do
+      replicateM_ 1000 $
+        generateAuthId gen >>= run . deleteAllSessionsOfAuthId storage
 
-  it "deleteAllSessionsOfAuthId should delete the relevant sessions (but no more)" $ do
-    replicateM_ 20 $ do
-      master <- generateSession gen HasAuthId
-      let Just authId = sessionAuthId master
-      preslaves <-
-        (++) <$> replicateM 100 (generateSession gen HasAuthId)
-             <*> replicateM 100 (generateSession gen NoAuthId)
-      let slaves = (\s -> s { sessionAuthId = Just authId }) <$> preslaves
-      others <-
-        (++) <$> replicateM 30 (generateSession gen HasAuthId)
-             <*> replicateM 30 (generateSession gen NoAuthId)
-      let allS = master : slaves ++ others
+    it "deleteAllSessionsOfAuthId should delete the relevant sessions (but no more)" $ do
+      replicateM_ 20 $ do
+        master <- generateSession gen HasAuthId
+        let Just authId = sessionAuthId master
+        preslaves <-
+          (++) <$> replicateM 100 (generateSession gen HasAuthId)
+               <*> replicateM 100 (generateSession gen NoAuthId)
+        let slaves = (\s -> s { sessionAuthId = Just authId }) <$> preslaves
+        others <-
+          (++) <$> replicateM 30 (generateSession gen HasAuthId)
+               <*> replicateM 30 (generateSession gen NoAuthId)
+        let allS = master : slaves ++ others
 
-      -- Insert preslaves then replace them with slaves to
-      -- further test if the storage backend is able to maintain
-      -- its invariants regarding auth IDs.
-      run (mapM_ (insertSession storage) (master : preslaves ++ others))
-      run (mapM_ (replaceSession storage) slaves)
+        -- Insert preslaves then replace them with slaves to
+        -- further test if the storage backend is able to maintain
+        -- its invariants regarding auth IDs.
+        run (mapM_ (insertSession storage) (master : preslaves ++ others))
+        run (mapM_ (replaceSession storage) slaves)
 
-      run (mapM (getSession storage . sessionKey) allS) `shouldReturn` (Just <$> allS)
-      run (deleteAllSessionsOfAuthId storage authId)
-      run (mapM (getSession storage . sessionKey) allS) `shouldReturn`
-        ((Nothing <$ (master : slaves)) ++ (Just <$> others))
+        run (mapM (getSession storage . sessionKey) allS) `shouldReturn` (Just <$> allS)
+        run (deleteAllSessionsOfAuthId storage authId)
+        run (mapM (getSession storage . sessionKey) allS) `shouldReturn`
+          ((Nothing <$ (master : slaves)) ++ (Just <$> others))
 
-  -- insertSession
-  it "getSession should return the contents of insertSession" $ do
-    replicateM_ 20 $ do
-      s <- generateSession gen HasAuthId
-      run (getSession storage (sessionKey s)) `shouldReturn` Nothing
-      run (insertSession storage s)
-      run (getSession storage (sessionKey s)) `shouldReturn` Just s
+    -- insertSession
+    it "getSession should return the contents of insertSession" $ do
+      replicateM_ 20 $ do
+        s <- generateSession gen HasAuthId
+        run (getSession storage (sessionKey s)) `shouldReturn` Nothing
+        run (insertSession storage s)
+        run (getSession storage (sessionKey s)) `shouldReturn` Just s
 
-  it "insertSession throws an exception if a session already exists" $ do
-    replicateM_ 20 $ do
-      s1 <- generateSession gen HasAuthId
-      s2 <- generateSession gen HasAuthId
-      let sid = sessionKey s1
-          s3 = s2 { sessionKey = sid }
-      run (getSession storage sid) `shouldReturn` Nothing
-      run (insertSession storage s1)
-      run (getSession storage sid) `shouldReturn` Just s1
-      run (insertSession storage s3) `shouldThrow`
-        (\(SessionAlreadyExists s1' s3') -> s1 == s1' && s3 == s3')
-      run (getSession storage sid) `shouldReturn` Just s1
+    it "insertSession throws an exception if a session already exists" $ do
+      replicateM_ 20 $ do
+        s1 <- generateSession gen HasAuthId
+        s2 <- generateSession gen HasAuthId
+        let sid = sessionKey s1
+            s3 = s2 { sessionKey = sid }
+        run (getSession storage sid) `shouldReturn` Nothing
+        run (insertSession storage s1)
+        run (getSession storage sid) `shouldReturn` Just s1
+        run (insertSession storage s3) `shouldThrow`
+          (\(SessionAlreadyExists s1' s3') -> s1 == s1' && s3 == s3')
+        run (getSession storage sid) `shouldReturn` Just s1
 
-  -- replaceSession
-  it "getSession should return the contents of replaceSession" $ do
-    replicateM_ 20 $ do
-      s1  <- generateSession gen HasAuthId
-      sxs <- replicateM 20 (generateSession gen HasAuthId)
-      let sid = sessionKey s1
-          sxs' = map (\s -> s { sessionKey = sid }) sxs
-      run (getSession storage sid) `shouldReturn` Nothing
-      run (insertSession storage s1)
-      forM_ (zip (s1:sxs') sxs') $ \(before, after) -> do
-        run (getSession storage sid) `shouldReturn` Just before
-        run (replaceSession storage after)
-        run (getSession storage sid) `shouldReturn` Just after
+    -- replaceSession
+    it "getSession should return the contents of replaceSession" $ do
+      replicateM_ 20 $ do
+        s1  <- generateSession gen HasAuthId
+        sxs <- replicateM 20 (generateSession gen HasAuthId)
+        let sid = sessionKey s1
+            sxs' = map (\s -> s { sessionKey = sid }) sxs
+        run (getSession storage sid) `shouldReturn` Nothing
+        run (insertSession storage s1)
+        forM_ (zip (s1:sxs') sxs') $ \(before, after) -> do
+          run (getSession storage sid) `shouldReturn` Just before
+          run (replaceSession storage after)
+          run (getSession storage sid) `shouldReturn` Just after
 
-  it "replaceSession throws an exception if a session does not exist" $ do
-    replicateM_ 20 $ do
-      s <- generateSession gen HasAuthId
-      let sid = sessionKey s
-      run (getSession storage sid) `shouldReturn` Nothing
-      run (replaceSession storage s) `shouldThrow` (\(SessionDoesNotExist s') -> s == s')
-      run (getSession storage sid) `shouldReturn` Nothing
-      run (insertSession storage s)
-      run (getSession storage sid) `shouldReturn` Just s
-      let s2 = s { sessionAuthId = Nothing }
-      run (replaceSession storage s2)
-      run (getSession storage sid) `shouldReturn` Just s2
+    it "replaceSession throws an exception if a session does not exist" $ do
+      replicateM_ 20 $ do
+        s <- generateSession gen HasAuthId
+        let sid = sessionKey s
+        run (getSession storage sid) `shouldReturn` Nothing
+        run (replaceSession storage s) `shouldThrow` (\(SessionDoesNotExist s') -> s == s')
+        run (getSession storage sid) `shouldReturn` Nothing
+        run (insertSession storage s)
+        run (getSession storage sid) `shouldReturn` Just s
+        let s2 = s { sessionAuthId = Nothing }
+        run (replaceSession storage s2)
+        run (getSession storage sid) `shouldReturn` Just s2
+    -- End of call to 'parallel'
 
-  -- Size and representation limits
+  -- Size and representation limits (not tested in parallel)
   let trySessionMap vals = do
         sid <- generateSessionId gen
         now <- TI.getCurrentTime
