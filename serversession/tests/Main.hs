@@ -164,7 +164,25 @@ main = hspec $ parallel $ do
         in Q.conjoin (test <$> sessions)
 
   describe "nextExpires" $ do
-    it "should have unit tests" pending
+    it "looks sane" $ do
+      let st i a = setIdleTimeout (f i) $ setAbsoluteTimeout (f a) $ stnull
+            where f = fmap (realToFrac :: Int -> TI.NominalDiffTime)
+          session a c = Session
+            { sessionKey        = irr 1
+            , sessionAuthId     = irr 2
+            , sessionData       = irr 3
+            , sessionCreatedAt  = c
+            , sessionAccessedAt = a
+            }
+          add x = TI.addUTCTime x fakenow
+          irr :: Int -> a
+          irr = error . ("irrelevant " ++) . show
+      nextExpires (st Nothing  Nothing)  (session (irr 4) (irr 5)) `shouldBe` Nothing
+      nextExpires (st (Just 1) Nothing)  (session fakenow (irr 6)) `shouldBe` Just (add 1)
+      nextExpires (st Nothing  (Just 1)) (session (irr 7) fakenow) `shouldBe` Just (add 1)
+      nextExpires (st (Just 3) (Just 7)) (session fakenow fakenow) `shouldBe` Just (add 3)
+      nextExpires (st (Just 3) (Just 7)) (session (add 4) fakenow) `shouldBe` Just (add 7)
+      nextExpires (st (Just 3) (Just 7)) (session (add 5) fakenow) `shouldBe` Just (add 7)
 
   describe "cookieExpires" $ do
     prop "is Nothing for non-persistent cookies regardless of session" $
