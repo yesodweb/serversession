@@ -165,6 +165,17 @@ timeFormat = "%Y-%m-%dT%H:%M:%S%Q"
 ----------------------------------------------------------------------
 
 
+-- | Run the given Redis command in batches of @511*1024@ items.
+-- This is used for @HMSET@ because there's a hard Redis limit of
+-- @1024*1024@ arguments to a command.  The last result is returned.
+batched :: Monad m => ([a] -> m b) -> [a] -> m b
+batched f xs =
+  let (this, rest) = splitAt (511*1024) xs
+      continue | null rest = return
+               | otherwise = const (batched f rest)
+  in f this >>= continue
+
+
 -- | Get the session for the given session ID.
 getSessionImpl :: SessionId -> R.Redis (Maybe Session)
 getSessionImpl sid = parseSession sid <$> unwrap (R.hgetall $ rSessionKey sid)
@@ -219,7 +230,7 @@ insertSessionImpl session = do
     Nothing -> do
       transaction $ do
         let sk = rSessionKey sid
-        r <- R.hmset sk (printSession session)
+        r <- batched (R.hmset sk) (printSession session)
         -- TODO: R.expireat
         insertSessionForAuthId (sessionKey session) (sessionAuthId session)
         return (() <$ r)
@@ -238,7 +249,7 @@ replaceSessionImpl session = do
         -- Delete the old session and set the new one.
         let sk = rSessionKey sid
         _ <- R.del [sk]
-        r <- R.hmset sk (printSession session)
+        r <- batched (R.hmset sk) (printSession session)
 
         -- Remove the old auth ID from the map if it has changed.
         let oldAuthId = sessionAuthId oldSession
