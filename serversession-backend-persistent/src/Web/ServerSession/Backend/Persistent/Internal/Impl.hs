@@ -90,7 +90,7 @@ instance Storage SqlStorage where
       (void $ P.insert $ toPersistentSession session)
       (\old -> liftIO $ E.throwIO $ SessionAlreadyExists old session)
       mold
-  replaceSession s session = do
+  replaceSession _ session = do
     let key = psKey $ sessionKey session
     mold <- P.get key
     maybe
