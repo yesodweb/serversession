@@ -10,5 +10,5 @@ import qualified Control.Exception as E
 main :: IO ()
 main = do
   conn <- connect defaultConnectInfo
-  hspec $ describe "AcidStorage on memory only" $ parallel $
+  hspec $ describe "RedisStorage" $ parallel $
     allStorageTests (RedisStorage conn) it runIO shouldBe shouldReturn shouldThrow
