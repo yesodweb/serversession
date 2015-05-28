@@ -51,6 +51,10 @@ withServerSession key opts storage = liftIO $ do
 
 -- | Construct the @wai-session@ session store using the given
 -- state.  Note that keys and values types are fixed.
+--
+-- As @wai-session@ always requires a value to be provided, we
+-- return an empty @ByteString@ when the empty session was not
+-- saved.
 sessionStore
   :: (MonadIO m, Storage s)
   => State s                           -- ^ @serversession@ state, incl. storage backend.
@@ -61,8 +65,8 @@ sessionStore state =
     sessionRef <- I.newIORef sessionMap
     let save = do
           sessionMap' <- I.atomicModifyIORef' sessionRef $ \a -> (a, a)
-          session <- saveSession state saveSessionToken sessionMap'
-          return $ TE.encodeUtf8 $ toPathPiece $ sessionKey session
+          msession <- saveSession state saveSessionToken sessionMap'
+          return $ maybe "" (TE.encodeUtf8 . toPathPiece . sessionKey) msession
     return (mkSession sessionRef, save)
 
 

@@ -20,6 +20,7 @@ import Yesod.Core.Types (Header(AddCookie), SessionBackend(..))
 
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.Text.Encoding as TE
+import qualified Data.Time as TI
 import qualified Network.Wai as W
 import qualified Web.Cookie as C
 
@@ -73,7 +74,8 @@ backend state =
       let rawSessionId = findSessionId cookieNameBS req
       (sessionMap, saveSessionToken) <- loadSession state rawSessionId
       let save =
-            fmap ((:[]) . createCookie state cookieNameBS) .
+            fmap ((:[]) . maybe (deleteCookie state cookieNameBS)
+                                (createCookie state cookieNameBS)) .
             saveSession state saveSessionToken
       return (sessionMap, save)
   }
@@ -98,6 +100,29 @@ createCookie state cookieNameBS session =
     , C.setCookieHttpOnly = getHttpOnlyCookies state
     , C.setCookieSecure   = getSecureCookies state
     }
+
+
+-- | Remove the session cookie from the client.  This is used
+-- when 'saveSession' returns @Nothing@:
+--
+--   * If the user didn't have a session cookie, this cookie
+--   deletion will be harmless.
+--
+--   * If the user had a session cookie that was invalidated,
+--   this will remove the invalid cookie from the client.
+deleteCookie :: State s -> ByteString -> Header
+deleteCookie state cookieNameBS =
+  AddCookie def
+    { C.setCookieName     = cookieNameBS
+    , C.setCookieValue    = ""
+    , C.setCookiePath     = Just "/"
+    , C.setCookieExpires  = Just aLongTimeAgo
+    , C.setCookieMaxAge   = Just 0
+    , C.setCookieDomain   = Nothing
+    , C.setCookieHttpOnly = getHttpOnlyCookies state
+    , C.setCookieSecure   = getSecureCookies state
+    }
+  where aLongTimeAgo = read "1970-01-01 00:00:01 UTC" :: TI.UTCTime
 
 
 -- | Fetch the 'SessionId' from the cookie with the given name.

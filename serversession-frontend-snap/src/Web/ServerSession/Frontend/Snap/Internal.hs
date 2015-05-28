@@ -24,6 +24,7 @@ import qualified Crypto.Nonce as N
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import qualified Data.Time as TI
 import qualified Data.Map as M
 import qualified Snap.Core as S
 import qualified Snap.Snaplet as S
@@ -88,8 +89,12 @@ instance Storage s => S.ISessionManager (ServerSessionManager s) where
   commit ssm = do
     -- Save session data to storage backend and set the cookie.
     let Just (sessionMap, saveSessionToken) = currentSession ssm
-    session <- liftIO $ saveSession (state ssm) saveSessionToken sessionMap
-    S.modifyResponse $ S.addResponseCookie $ createCookie (state ssm) (cookieName ssm) session
+    msession <- liftIO $ saveSession (state ssm) saveSessionToken sessionMap
+    S.modifyResponse $ S.addResponseCookie $
+      maybe
+        (deleteCookie (state ssm) (cookieName ssm))
+        (createCookie (state ssm) (cookieName ssm))
+        msession
 
   reset ssm = do
     -- Reset has no defined semantics.  We invalidate the session
@@ -160,6 +165,29 @@ createCookie st cookieNameBS session =
     , S.cookieHttpOnly = getHttpOnlyCookies st
     , S.cookieSecure   = getSecureCookies st
     }
+
+
+-- | Remove the session cookie from the client.  This is used
+-- when 'saveSession' returns @Nothing@:
+--
+--   * If the user didn't have a session cookie, this cookie
+--   deletion will be harmless.
+--
+--   * If the user had a session cookie that was invalidated,
+--   this will remove the invalid cookie from the client.
+-- the server-side as well.
+deleteCookie :: State s -> ByteString -> S.Cookie
+deleteCookie st cookieNameBS =
+  S.Cookie
+    { S.cookieName     = cookieNameBS
+    , S.cookieValue    = ""
+    , S.cookiePath     = Just "/"
+    , S.cookieExpires  = Just aLongTimeAgo
+    , S.cookieDomain   = Nothing
+    , S.cookieHttpOnly = getHttpOnlyCookies st
+    , S.cookieSecure   = getSecureCookies st
+    }
+  where aLongTimeAgo = read "1970-01-01 00:00:01 UTC" :: TI.UTCTime
 
 
 -- | The CSRF key is kept as a session variable like any other

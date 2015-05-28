@@ -456,7 +456,14 @@ data SaveSessionToken =
 -- | Save the session on the storage backend.  A
 -- 'SaveSessionToken' given by 'loadSession' is expected besides
 -- the new contents of the session.
-saveSession :: Storage s => State s -> SaveSessionToken -> SessionMap -> IO Session
+--
+-- Returns @Nothing@ if the session was empty and didn't need to
+-- be saved.  Note that this does /not/ necessarily means that
+-- nothing was done.  If you ask for a session to be invalidated
+-- and clear every other sesssion variable, then 'saveSession'
+-- will invalidate the older session but will avoid creating a
+-- new, empty one.
+saveSession :: Storage s => State s -> SaveSessionToken -> SessionMap -> IO (Maybe Session)
 saveSession state (SaveSessionToken maybeInput now) wholeOutputSessionMap =
   runTransactionM (storage state) $ do
     let decomposedSessionMap = decomposeSession state wholeOutputSessionMap
@@ -513,14 +520,19 @@ decomposeSession state sm1 =
 
 -- | Save a session on the database.  If an old session is
 -- supplied, it is replaced, otherwise a new session is
--- generated.
+-- generated.  If the session is empty, it is not saved and
+-- @Nothing@ is returned.
 saveSessionOnDb
   :: Storage s
   => State s
-  -> UTCTime                -- ^ Now.
-  -> Maybe Session          -- ^ The old session, if any.
-  -> DecomposedSession      -- ^ The session data to be saved.
-  -> TransactionM s Session -- ^ Copy of saved session.
+  -> UTCTime                        -- ^ Now.
+  -> Maybe Session                  -- ^ The old session, if any.
+  -> DecomposedSession              -- ^ The session data to be saved.
+  -> TransactionM s (Maybe Session) -- ^ Copy of saved session.
+saveSessionOnDb _ _ Nothing (DecomposedSession Nothing _ m)
+  -- Return Nothing without doing anything whenever the session
+  -- is empty (including auth ID) and there was no prior session.
+  | M.null m = return Nothing
 saveSessionOnDb state now maybeInput DecomposedSession {..} = do
   -- Generate properties if needed or take them from previous
   -- saved session.
@@ -543,7 +555,7 @@ saveSessionOnDb state now maybeInput DecomposedSession {..} = do
         , sessionAccessedAt = now
         }
   saveToDb session
-  return session
+  return (Just session)
 
 
 -- | Create a 'SessionMap' from a 'Session'.

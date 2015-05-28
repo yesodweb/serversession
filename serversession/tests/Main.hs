@@ -216,13 +216,25 @@ main = hspec $ parallel $ do
     it "should have more tests" pending
 
   describe "saveSessionOnDb" $ do
+    let prepareSaveSessionOnDb = do
+          let oldSession = Session
+                { sessionKey        = S "123456789-123456789-1234"
+                , sessionAuthId     = Just "auth"
+                , sessionData       = M.fromList [("a", "b"), ("c", "d")]
+                , sessionCreatedAt  = TI.addUTCTime (-10) fakenow
+                , sessionAccessedAt = TI.addUTCTime (-5)  fakenow }
+          sto <- prepareMockStorage [oldSession]
+          st  <- createState sto
+          return (oldSession, sto, st)
+        emptyDecomp = DecomposedSession Nothing DoNotForceInvalidate M.empty
+
     it "inserts new sessions when there wasn't an old one" $ do
       sto <- emptyMockStorage
       st  <- createState sto
       let d = DecomposedSession a DoNotForceInvalidate m
           m = M.fromList [("a", "b"), ("c", "d")]
           a = Just "auth"
-      session <- saveSessionOnDb st fakenow Nothing d
+      Just session <- saveSessionOnDb st fakenow Nothing d
       getMockOperations sto `shouldReturn` [InsertSession session]
       sessionAuthId     session `shouldBe` a
       sessionData       session `shouldBe` m
@@ -230,25 +242,29 @@ main = hspec $ parallel $ do
       sessionAccessedAt session `shouldBe` fakenow
 
     it "replaces sesssions when there was an old one" $ do
-      let oldSession = Session
-            { sessionKey        = S "123456789-123456789-1234"
-            , sessionAuthId     = Just "auth"
-            , sessionData       = M.fromList [("a", "b"), ("c", "d")]
-            , sessionCreatedAt  = TI.addUTCTime (-10) fakenow
-            , sessionAccessedAt = TI.addUTCTime (-5)  fakenow }
-      sto <- prepareMockStorage [oldSession]
-      st  <- createState sto
+      (oldSession, sto, st) <- prepareSaveSessionOnDb
       let d = DecomposedSession Nothing DoNotForceInvalidate m
           m = M.fromList [("a", "b"), ("x", "y")]
-      session <- saveSessionOnDb st fakenow (Just oldSession) d
+      Just session <- saveSessionOnDb st fakenow (Just oldSession) d
       getMockOperations sto `shouldReturn` [ReplaceSession session]
       session `shouldBe` oldSession
                            { sessionData       = m
                            , sessionAuthId     = Nothing
                            , sessionAccessedAt = fakenow }
 
-    it "does not save session if it's empty and there wasn't an old one" $
-      pendingWith "wishlist"
+    it "does not save session if it's empty and there wasn't an old one" $ do
+      sto <- emptyMockStorage
+      st  <- createState sto
+      saveSessionOnDb st fakenow Nothing emptyDecomp `shouldReturn` Nothing
+      getMockOperations sto `shouldReturn` []
+
+    it "saves session if it's empty but there was an old one" $ do
+      (oldSession, sto, st) <- prepareSaveSessionOnDb
+      let newSession = oldSession { sessionData       = M.empty
+                                  , sessionAuthId     = Nothing
+                                  , sessionAccessedAt = fakenow }
+      saveSessionOnDb st fakenow (Just oldSession) emptyDecomp `shouldReturn` Just newSession
+      getMockOperations sto `shouldReturn` [ReplaceSession newSession]
 
     it "does not save session if only difference was accessedAt, and it was less than threshold" $
       pendingWith "wishlist"
@@ -268,7 +284,10 @@ main = hspec $ parallel $ do
             test v       = dsForceInvalidate (decomposeSession stnull $ sessionMap v) Q.=== v
         in Q.conjoin (test <$> allForces)
 
-    it "should have more tests" pending
+    it "removes the auth key" $ do
+      let m = M.singleton "a" "b"; m' = M.insert (authKey stnull) "x" m
+      decomposeSession stnull m' `shouldBe`
+        DecomposedSession (Just "x") DoNotForceInvalidate m
 
   describe "toSessionMap" $ do
     let mkSession authId data_ = Session
