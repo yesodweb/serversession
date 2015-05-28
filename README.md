@@ -108,6 +108,21 @@ though, please bear in mind that:
     index for the auth ID.  Thus, by default the
     `deleteAllSessionsOfAuthId` operation will take linear time.
 
+  * We stress test our backends to ensure they support almost
+    every conceivable use case for sessions, but we only
+    guarantee to support:
+
+    * Every possible character and byte for keys and values,
+      respectively.
+
+    * At least one million keys per session.
+
+    * Session values of at least 100 MiB.
+
+    * Session keys of At least 1 MiB.
+
+    * At least 200 independent sessions per user.
+
 
 ## Background
 
