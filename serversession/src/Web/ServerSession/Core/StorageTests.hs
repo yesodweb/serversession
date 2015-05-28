@@ -184,23 +184,17 @@ allStorageTests storage it runIO parallel _shouldBe shouldReturn shouldThrow = d
         run (deleteSession storage sid)
         run (getSession storage sid) `shouldReturn` Nothing
       mib = 1024*1024
-      showT = T.pack . show
-  it "supports a session with one million small keys" $
-    trySessionMap [(showT i, "bar") | i <- [1..1000000]]
 
-  it "supports a session with one 1 MiB value" $
-    trySessionMap [("foo", B.replicate mib 70)]
+  it "stress test: one million small keys" $
+    trySessionMap [(T.pack (show i), "bar") | i <- [1..(1000000 :: Int)]]
 
-  it "supports a session with one hundred 1 MiB values" $
-    trySessionMap [(showT i, B.replicate mib (toEnum i)) | i <- [0..99]]
-
-  it "supports a session with one 100 MiB value" $
+  it "stress test: one 100 MiB value" $
     trySessionMap [("foo", B.replicate (100 * mib) 70)]
 
-  it "supports a session with a 1 MiB key" $
+  it "stress test: one 1 MiB key" $
     trySessionMap [(T.replicate mib "x", "foo")]
 
-  it "supports a session with the key having all possible Unicode code points and value having all possible byte values" $
+  it "stress test: key with all possible Unicode code points and value with all possible byte values" $
     trySessionMap [(T.pack [minBound..maxBound], B.pack [minBound..maxBound])]
 
 
