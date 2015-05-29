@@ -211,7 +211,39 @@ main = hspec $ parallel $ do
     -- We already test the other functions that saveSession
     -- calls.  A single unit test just to be sure everything is
     -- connected should be enough.
-    it "works for a complex example" pending
+    it "works for a complex example" $ do
+      sto <- emptyMockStorage
+      st  <- createState sto
+      saveSession st (SaveSessionToken Nothing fakenow) M.empty `shouldReturn` Nothing
+      getMockOperations sto `shouldReturn` []
+
+      let m1 = M.singleton "a" "b"
+      Just session1 <- saveSession st (SaveSessionToken Nothing fakenow) m1
+      sessionAuthId session1 `shouldBe` Nothing
+      sessionData   session1 `shouldBe` m1
+      getMockOperations sto `shouldReturn` [InsertSession session1]
+
+      let m2 = M.insert (authKey st) "john" m1
+      Just session2 <- saveSession st (SaveSessionToken (Just session1) fakenow) m2
+      sessionAuthId session2 `shouldBe` Just "john"
+      sessionData   session2 `shouldBe` m1
+      sessionKey session2 == sessionKey session1 `shouldBe` False
+      getMockOperations sto `shouldReturn` [DeleteSession (sessionKey session1), InsertSession session2]
+
+      let m3 = M.insert forceInvalidateKey (B8.pack $ show AllSessionIdsOfLoggedUser) m2
+      Just session3 <- saveSession st (SaveSessionToken (Just session2) fakenow) m3
+      session3 `shouldBe` session2 { sessionKey = sessionKey session3 }
+      getMockOperations sto `shouldReturn`
+        [DeleteSession (sessionKey session2), DeleteAllSessionsOfAuthId "john", InsertSession session3]
+
+      let m4 = M.insert "x" "y" m2
+      Just session4 <- saveSession st (SaveSessionToken (Just session3) fakenow) m4
+      session4 `shouldBe` session3 { sessionData = M.delete (authKey st) m4 }
+      getMockOperations sto `shouldReturn` [ReplaceSession session4]
+
+      Just session5 <- saveSession st (SaveSessionToken (Just session4) (TI.addUTCTime 10 fakenow)) m4
+      session5 `shouldBe` session4
+      getMockOperations sto `shouldReturn` []
 
   describe "invalidateIfNeeded" $ do
     let prepareInvalidateIfNeeded authId = do
