@@ -214,7 +214,50 @@ main = hspec $ parallel $ do
     it "works for a complex example" pending
 
   describe "invalidateIfNeeded" $ do
-    it "should have more tests" pending
+    let prepareInvalidateIfNeeded authId = do
+          let oldSession = Session
+                { sessionKey        = S "123456789-123456789-1234"
+                , sessionAuthId     = authId
+                , sessionData       = M.empty
+                , sessionCreatedAt  = TI.addUTCTime (-10) fakenow
+                , sessionAccessedAt = TI.addUTCTime (-5)  fakenow }
+          sto <- prepareMockStorage [oldSession]
+          st  <- createState sto
+          return (oldSession, sto, st)
+        allEdges = let x = [Nothing, Just "john", Just "jane"] in (,) <$> x <*> x
+
+    it "does not invalidate when not changing auth ID nor explicitly requesting" $ do
+      forM_ [Nothing, Just "john"] $ \authId -> do
+        (session, sto, st) <- prepareInvalidateIfNeeded authId
+        let d = DecomposedSession authId DoNotForceInvalidate M.empty
+        invalidateIfNeeded st (Just session) d `shouldReturn` Just session
+        getMockOperations sto `shouldReturn` []
+
+    it "invalidates the current session when changing auth ID" $ do
+      forM_ [ (Just "john",  Just "jane")
+            , (Just "admin", Nothing)
+            , (Nothing,      Just "joe") ] $ \edgeTransition -> do
+        (session, sto, st) <- prepareInvalidateIfNeeded (fst edgeTransition)
+        let d = DecomposedSession (snd edgeTransition) DoNotForceInvalidate M.empty
+        invalidateIfNeeded st (Just session) d `shouldReturn` Nothing
+        getMockOperations sto `shouldReturn` [DeleteSession (sessionKey session)]
+
+    it "invalidates the current session when CurrentSessionId is forced" $ do
+      forM_ allEdges $ \edgeTransition -> do
+        (session, sto, st) <- prepareInvalidateIfNeeded (fst edgeTransition)
+        let d = DecomposedSession (snd edgeTransition) CurrentSessionId M.empty
+        invalidateIfNeeded st (Just session) d `shouldReturn` Nothing
+        getMockOperations sto `shouldReturn` [DeleteSession (sessionKey session)]
+
+    it "invalidates all of the user's sessions when AllSessionIdsOfLoggedUser is forced" $ do
+      forM_ allEdges $ \edgeTransition -> do
+        (session, sto, st) <- prepareInvalidateIfNeeded (fst edgeTransition)
+        let d = DecomposedSession (snd edgeTransition) AllSessionIdsOfLoggedUser M.empty
+        invalidateIfNeeded st (Just session) d `shouldReturn` Nothing
+        let expected = DeleteSession (sessionKey session) :
+                       maybe [] ((:[]) . DeleteAllSessionsOfAuthId) (snd edgeTransition)
+                       -- It deletes all sessions only when there's an authId.
+        getMockOperations sto `shouldReturn` expected
 
   describe "saveSessionOnDb" $ do
     let prepareSaveSessionOnDb = do
@@ -436,7 +479,7 @@ prepareMockStorage sessions = do
 -- | Get the list of mock operations that were made and clear
 -- them.  The operations are listed in chronological order.
 getMockOperations :: MockStorage -> IO [MockOperation]
-getMockOperations = flip I.atomicModifyIORef' ((,) []) . mockOperations
+getMockOperations = flip I.atomicModifyIORef' ((,) [] . reverse) . mockOperations
 
 
 -- | Add a mock operations to the log.
