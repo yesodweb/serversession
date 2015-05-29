@@ -1,0 +1,13 @@
+resolver: nightly-2015-05-29
+packages:
+  - serversession
+  - serversession-backend-acid-state
+  - serversession-backend-persistent
+  - serversession-backend-redis
+  - serversession-frontend-snap
+  - serversession-frontend-wai
+  - serversession-frontend-yesod
+extra-deps:
+  - acid-state-0.12.4
+  - nonce-1.0.2
+  - wai-session-0.3.1
