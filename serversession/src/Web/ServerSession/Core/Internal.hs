@@ -233,7 +233,6 @@ instance E.Exception StorageException where
 ----------------------------------------------------------------------
 
 
--- TODO: do not create empty sessions.
 
 -- TODO: delete expired sessions.
 
