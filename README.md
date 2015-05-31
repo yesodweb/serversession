@@ -1,4 +1,4 @@
-# serversession packages
+# serversession packages [![Build Status](https://travis-ci.org/yesodweb/serversession.svg?branch=master)](https://travis-ci.org/yesodweb/serversession)
 
 Secure, modular server-side sessions.
 
@@ -7,36 +7,44 @@ traditional server-side sessions.  Users who don't have a session
 yet are assigned a random 144-bit session ID that is the key on a
 storage backend.  All session data is saved on the storage backend.
 
-The `serversession` package implements the core logic.  It needs
-to be paired up with two companion packages:
+The `serversession` package
+([![Hackage](https://img.shields.io/hackage/v/serversession.svg)](https://hackage.haskell.org/package/serversession))
+implements the core logic.  It needs to be paired up with two
+companion packages:
 
   * _Backend (storage)_, in order to store the session data.
     Currently we support:
 
-    * `serversession-backend-persistent`: Storage backend using
+    * [![Hackage](https://img.shields.io/hackage/v/serversession-backend-persistent.svg)](https://hackage.haskell.org/package/serversession-backend-persistent)
+      `serversession-backend-persistent`: Storage backend using
       `persistent`'s SQL backend.  Works with PostgreSQL, MySQL,
       SQLite.
 
-    * `serversession-backend-acid-state`: Storage backend using
+    * [![Hackage](https://img.shields.io/hackage/v/serversession-backend-acid-state.svg)](https://hackage.haskell.org/package/serversession-backend-acid-state)
+      `serversession-backend-acid-state`: Storage backend using
       `acid-state`.  This backend keeps sessions in memory but
       provides ACID guarantees using a transaction log.  It can
       also be used without durability as a memory-only backend.
 
-    * `serversession-backend-redis`: Storage backend using
+    * [![Hackage](https://img.shields.io/hackage/v/serversession-backend-redis.svg)](https://hackage.haskell.org/package/serversession-backend-redis)
+      `serversession-backend-redis`: Storage backend using
       Redis via the `hedis` package.
 
   * _Frontend_, bindings for your web framework of choice.
     Currently we support:
 
-    * `serversession-frontend-yesod`: Support for the Yesod
+    * [![Hackage](https://img.shields.io/hackage/v/serversession-frontend-yesod.svg)](https://hackage.haskell.org/package/serversession-frontend-yesod)
+      `serversession-frontend-yesod`: Support for the Yesod
       framework.  Replaces the default `clientsession`.
 
-    * `serversession-frontend-snap`: Support for the Snap
+    * [![Hackage](https://img.shields.io/hackage/v/serversession-frontend-snap.svg)](https://hackage.haskell.org/package/serversession-frontend-snap)
+      `serversession-frontend-snap`: Support for the Snap
       framework.  Replaces the default
       `Snap.Snaplet.Session.Backends.CookieSession` based on
       `clientsession`.
 
-    * `serversession-frontend-wai`: Generic support for WAI
+    * [![Hackage](https://img.shields.io/hackage/v/serversession-frontend-wai.svg)](https://hackage.haskell.org/package/serversession-frontend-wai)
+      `serversession-frontend-wai`: Generic support for WAI
       applications via the `wai-session` package by using a
       `vault`.
 
