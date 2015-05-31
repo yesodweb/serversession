@@ -27,9 +27,12 @@ library
     Web.ServerSession.Backend.Acid
     Web.ServerSession.Backend.Acid.Internal
   extensions:
+    ConstraintKinds
     DeriveDataTypeable
+    FlexibleContexts
     TemplateHaskell
     TypeFamilies
+    UndecidableInstances
   ghc-options:     -Wall
 
 

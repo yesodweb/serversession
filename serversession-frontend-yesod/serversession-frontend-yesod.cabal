@@ -18,6 +18,7 @@ library
   build-depends:
       base                      == 4.*
     , bytestring
+    , containers
     , cookie                    >= 0.4
     , data-default
     , path-pieces
@@ -32,7 +33,9 @@ library
     Web.ServerSession.Frontend.Yesod
     Web.ServerSession.Frontend.Yesod.Internal
   extensions:
+    FlexibleContexts
     OverloadedStrings
+    TypeFamilies
   ghc-options:     -Wall
 
 source-repository head

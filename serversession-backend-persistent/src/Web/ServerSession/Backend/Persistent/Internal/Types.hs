@@ -5,7 +5,11 @@
 -- Also exports orphan instances of @PersistField{,Sql} SessionId@.
 module Web.ServerSession.Backend.Persistent.Internal.Types
   ( ByteStringJ(..)
-  , SessionMapJ(..)
+    -- * Orphan instances
+    -- ** SessionId
+    -- $orphanSessionId
+    -- ** SessionMap
+    -- $orphanSessionMap
   ) where
 
 import Control.Arrow (first)
@@ -29,12 +33,19 @@ import qualified Data.Text.Encoding as TE
 ----------------------------------------------------------------------
 
 
--- | Does not do sanity checks (DB is trusted).
-instance PersistField SessionId where
+-- $orphanSessionId
+--
+-- @
+-- instance 'PersistField'    ('SessionId' sess)
+-- instance 'PersistFieldSql' ('SessionId' sess)
+-- @
+--
+-- Does not do sanity checks (DB is trusted).
+instance PersistField (SessionId sess) where
   toPersistValue = toPersistValue . unS
   fromPersistValue = fmap S . fromPersistValue
 
-instance PersistFieldSql SessionId where
+instance PersistFieldSql (SessionId sess) where
   sqlType p = sqlType (fmap unS p)
 
 
@@ -66,31 +77,41 @@ instance A.ToJSON ByteStringJ where
 ----------------------------------------------------------------------
 
 
--- | Newtype of a 'SessionMap' that serializes using @cereal@ on
+-- $orphanSessionMap
+--
+-- @
+-- instance 'PersistField'    'SessionMap'
+-- instance 'PersistFieldSql' 'SessionMap'
+-- instance 'S.Serialize'       'SessionMap'
+-- instance 'A.FromJSON'        'SessionMap'
+-- instance 'A.ToJSON'          'SessionMap'
+-- @
+
+-- 'PersistField' for 'SessionMap' serializes using @cereal@ on
 -- the database.  We tried to use @aeson@ but @cereal@ is twice
 -- faster and uses half the memory for this use case.
-newtype SessionMapJ = M { unM :: SessionMap }
-  deriving (Eq, Ord, Show, Read, Typeable)
-
-instance PersistField SessionMapJ where
+--
+-- The JSON instance translates to objects using base64url for
+-- the values of 'ByteString' (cf. 'ByteStringJ').
+instance PersistField SessionMap where
   toPersistValue   = toPersistValue . S.encode
   fromPersistValue = fromPersistValue >=> (either (Left . T.pack) Right . S.decode)
 
-instance PersistFieldSql SessionMapJ where
+instance PersistFieldSql SessionMap where
   sqlType _ = SqlBlob
 
-instance S.Serialize SessionMapJ where
-  put = S.put . map (first TE.encodeUtf8) . M.toAscList . unM
-  get = M . M.fromAscList . map (first TE.decodeUtf8) <$> S.get
+instance S.Serialize SessionMap where
+  put = S.put . map (first TE.encodeUtf8) . M.toAscList . unSessionMap
+  get = SessionMap . M.fromAscList . map (first TE.decodeUtf8) <$> S.get
 
-instance A.FromJSON SessionMapJ where
+instance A.FromJSON SessionMap where
   parseJSON = fmap fixup . A.parseJSON
     where
-      fixup :: M.Map Text ByteStringJ -> SessionMapJ
-      fixup = M . fmap unB
+      fixup :: M.Map Text ByteStringJ -> SessionMap
+      fixup = SessionMap . fmap unB
 
-instance A.ToJSON SessionMapJ where
+instance A.ToJSON SessionMap where
   toJSON = A.toJSON . mangle
     where
-      mangle :: SessionMapJ -> M.Map Text ByteStringJ
-      mangle = fmap B . unM
+      mangle :: SessionMap -> M.Map Text ByteStringJ
+      mangle = fmap B . unSessionMap

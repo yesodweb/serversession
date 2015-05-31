@@ -34,7 +34,9 @@ library
     Web.ServerSession.Frontend.Wai
     Web.ServerSession.Frontend.Wai.Internal
   extensions:
+    FlexibleContexts
     OverloadedStrings
+    TypeFamilies
   ghc-options:     -Wall
 
 source-repository head

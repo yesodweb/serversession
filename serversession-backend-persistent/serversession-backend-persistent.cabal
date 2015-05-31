@@ -24,7 +24,7 @@ library
     , containers
     , path-pieces
     , persistent                == 2.1.*
-    , persistent-template       == 2.1.*
+    , tagged                    >= 0.8
     , text
     , time
     , transformers
@@ -37,14 +37,19 @@ library
   extensions:
     DeriveDataTypeable
     EmptyDataDecls
+    FlexibleContexts
     FlexibleInstances
     GADTs
     GeneralizedNewtypeDeriving
     OverloadedStrings
+    PatternGuards
     QuasiQuotes
     RecordWildCards
+    ScopedTypeVariables
+    StandaloneDeriving
     TemplateHaskell
     TypeFamilies
+    UndecidableInstances
   ghc-options:     -Wall
 
 

@@ -3,6 +3,7 @@
 module Web.ServerSession.Frontend.Snap.Internal
   ( initServerSessionManager
   , simpleServerSessionManager
+  , SnapSession(..)
   , ServerSessionManager(..)
   , currentSessionMap
   , modifyCurrentSession
@@ -33,7 +34,10 @@ import qualified Snap.Snaplet.Session.SessionManager as S
 
 
 -- | Create a new 'ServerSessionManager' using the given 'State'.
-initServerSessionManager :: Storage s => IO (State s) -> S.SnapletInit b S.SessionManager
+initServerSessionManager
+  :: (Storage sto, SnapSession (SessionData sto))
+  => IO (State sto)
+  -> S.SnapletInit b S.SessionManager
 initServerSessionManager mkState =
   S.makeSnaplet "ServerSession"
                 "Snaplet providing sessions via server-side storage."
@@ -51,17 +55,67 @@ initServerSessionManager mkState =
 
 -- | Simplified version of 'initServerSessionManager', sufficient
 -- for most needs.
-simpleServerSessionManager :: Storage s => IO s -> (State s -> State s) -> S.SnapletInit b S.SessionManager
+simpleServerSessionManager
+  :: (Storage sto, SessionData sto ~ SessionMap)
+  => IO sto
+  -> (State sto -> State sto)
+  -> S.SnapletInit b S.SessionManager
 simpleServerSessionManager mkStorage opts =
   initServerSessionManager (fmap opts . createState =<< mkStorage)
 
 
+----------------------------------------------------------------------
+
+
+-- | Class for data types that implement the operations Snap
+-- expects sessions to support.
+class IsSessionData sess => SnapSession sess where
+  ssInsert :: Text -> Text -> sess -> sess
+  ssLookup :: Text -> sess -> Maybe Text
+  ssDelete :: Text -> sess -> sess
+  ssToList :: sess -> [(Text, Text)]
+
+  ssInsertCsrf :: Text -> sess -> sess
+  ssLookupCsrf :: sess -> Maybe Text
+
+  ssForceInvalidate :: ForceInvalidate -> sess -> sess
+
+
+-- | Uses 'csrfKey'.
+instance SnapSession SessionMap where
+  ssInsert key val = onSM (M.insert key (TE.encodeUtf8 val))
+  ssLookup key     = fmap TE.decodeUtf8 . M.lookup key . unSessionMap
+  ssDelete key     = onSM (M.delete key)
+  ssToList =
+    -- Remove the CSRF key from the list as the current
+    -- clientsession backend doesn't return it.
+    fmap (second TE.decodeUtf8) .
+    M.toList .
+    M.delete csrfKey .
+    unSessionMap
+
+  ssInsertCsrf = ssInsert csrfKey
+  ssLookupCsrf = ssLookup csrfKey
+
+  ssForceInvalidate force = onSM (M.insert forceInvalidateKey (B8.pack $ show force))
+
+
+-- | Apply a function to a 'SessionMap'.
+onSM
+  :: (M.Map Text ByteString -> M.Map Text ByteString)
+  -> (SessionMap            -> SessionMap)
+onSM f = SessionMap . f . unSessionMap
+
+
+----------------------------------------------------------------------
+
+
 -- | A 'S.ISessionManager' using server-side sessions.
-data ServerSessionManager s =
+data ServerSessionManager sto =
   ServerSessionManager
-    { currentSession :: Maybe (SessionMap, SaveSessionToken)
+    { currentSession :: Maybe (SessionData sto, SaveSessionToken sto)
       -- ^ Field used for per-request caching of the session.
-    , state :: State s
+    , state :: State sto
       -- ^ The core @serversession@ state.
     , cookieName :: ByteString
       -- ^ Cache of the cookie name as bytestring.
@@ -70,26 +124,32 @@ data ServerSessionManager s =
     } deriving (Typeable)
 
 
-instance Storage s => S.ISessionManager (ServerSessionManager s) where
+instance ( Storage sto
+         , SnapSession (SessionData sto)
+         ) => S.ISessionManager (ServerSessionManager sto) where
+  load ssm@ServerSessionManager { currentSession = Just _ } =
+    -- Don't do anything if already loaded.  Yeah, I know this is
+    -- strange, go figure.
+    return ssm
   load ssm = do
     -- Get session ID from cookie.
     mcookie <- S.getCookie (cookieName ssm)
     -- Load session from storage backend.
-    (sessionMap, saveSessionToken) <-
+    (data1, saveSessionToken) <-
       liftIO $ loadSession (state ssm) (S.cookieValue <$> mcookie)
     -- Add CSRF token if needed.
-    sessionMap' <-
+    data2 <-
       maybe
-        (flip (M.insert csrfKey) sessionMap <$> N.nonce128url (nonceGen ssm))
-        (const $ return sessionMap)
-        (M.lookup csrfKey sessionMap)
+        (flip ssInsertCsrf data1 <$> N.nonce128urlT (nonceGen ssm))
+        (const $ return data1)
+        (ssLookupCsrf data1)
     -- Good to go!
-    return ssm { currentSession = Just (sessionMap', saveSessionToken) }
+    return ssm { currentSession = Just (data2, saveSessionToken) }
 
   commit ssm = do
     -- Save session data to storage backend and set the cookie.
-    let Just (sessionMap, saveSessionToken) = currentSession ssm
-    msession <- liftIO $ saveSession (state ssm) saveSessionToken sessionMap
+    let Just (data_, saveSessionToken) = currentSession ssm
+    msession <- liftIO $ saveSession (state ssm) saveSessionToken data_
     S.modifyResponse $ S.addResponseCookie $
       maybe
         (deleteCookie (state ssm) (cookieName ssm))
@@ -100,52 +160,54 @@ instance Storage s => S.ISessionManager (ServerSessionManager s) where
     -- Reset has no defined semantics.  We invalidate the session
     -- and clear its variables, which seems to be what the
     -- current clientsession backend from the snap package does.
-    csrfToken <- N.nonce128url (nonceGen ssm)
-    let newSession = M.fromList [ (forceInvalidateKey, B8.pack $ show CurrentSessionId)
-                                , (csrfKey, csrfToken) ]
+    csrfToken <- N.nonce128urlT (nonceGen ssm)
+    let newSession =
+          ssInsertCsrf      csrfToken        $
+          ssForceInvalidate CurrentSessionId $
+          emptySession
     return $ modifyCurrentSession (const newSession) ssm
 
   touch =
     -- We always touch the session (if commit is called).
     id
 
-  insert key value = modifyCurrentSession (M.insert key (TE.encodeUtf8 value))
+  insert key value = modifyCurrentSession (ssInsert key value)
 
   lookup key =
     -- Decoding will always succeed if the session is used only
     -- from snap.
-    fmap TE.decodeUtf8 . M.lookup key . currentSessionMap "lookup"
+    ssLookup key . currentSessionMap "lookup"
 
-  delete key = modifyCurrentSession (M.delete key)
+  delete key = modifyCurrentSession (ssDelete key)
 
   csrf =
     -- Guaranteed to succeed since both load and reset add a
     -- csrfKey to the session map.
     fromMaybe (error "serversession-frontend-snap/csrf: never here") .
-    S.lookup csrfKey
+    ssLookupCsrf . currentSessionMap "csrf"
 
-  toList =
-    -- Remove the CSRF key from the list as the current
-    -- clientsession backend doesn't return it.
-    fmap (second TE.decodeUtf8) .
-    M.toList .
-    M.delete csrfKey .
-    currentSessionMap "toList"
+  toList = ssToList . currentSessionMap "toList"
 
 
--- | Get the current 'SessionMap' from 'currentSession' and
+-- | Get the current 'SessionData' from 'currentSession' and
 -- unwrap its @Just@.  If it's @Nothing@, @error@ is called.  We
 -- expect 'load' to be called before any other 'ISessionManager'
 -- method.
-currentSessionMap :: String -> ServerSessionManager s -> SessionMap
+currentSessionMap :: String -> ServerSessionManager sto -> SessionData sto
 currentSessionMap fn ssm = maybe (error err) fst (currentSession ssm)
   where err = "serversession-frontend-snap/" ++ fn ++
               ": currentSession is Nothing, did you call 'load'?"
 
 
 -- | Modify the current session in any way.
-modifyCurrentSession :: (SessionMap -> SessionMap) -> ServerSessionManager s -> ServerSessionManager s
+modifyCurrentSession
+  :: (SessionData sto -> SessionData sto)
+  -> ServerSessionManager sto
+  -> ServerSessionManager sto
 modifyCurrentSession f ssm = ssm { currentSession = fmap (first f) (currentSession ssm) }
+
+
+----------------------------------------------------------------------
 
 
 -- | Create a cookie for the given session.
@@ -153,7 +215,7 @@ modifyCurrentSession f ssm = ssm { currentSession = fmap (first f) (currentSessi
 -- The cookie expiration is set via 'nextExpires'.  Note that
 -- this is just an optimization, as the expiration is checked on
 -- the server-side as well.
-createCookie :: State s -> ByteString -> Session -> S.Cookie
+createCookie :: State sto -> ByteString -> Session sess -> S.Cookie
 createCookie st cookieNameBS session =
   -- Generate a cookie with the final session ID.
   S.Cookie
@@ -176,7 +238,7 @@ createCookie st cookieNameBS session =
 --   * If the user had a session cookie that was invalidated,
 --   this will remove the invalid cookie from the client.
 -- the server-side as well.
-deleteCookie :: State s -> ByteString -> S.Cookie
+deleteCookie :: State sto -> ByteString -> S.Cookie
 deleteCookie st cookieNameBS =
   S.Cookie
     { S.cookieName     = cookieNameBS

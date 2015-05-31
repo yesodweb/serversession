@@ -3,17 +3,19 @@ module Main (main) where
 import Control.Monad (forM_)
 import Control.Monad.Logger (runStderrLoggingT, runNoLoggingT)
 import Data.Pool (destroyAllResources)
+import Data.Proxy (Proxy(..))
 import Database.Persist.Postgresql (createPostgresqlPool)
 import Database.Persist.Sqlite (createSqlitePool)
 import Test.Hspec
 import Web.ServerSession.Backend.Persistent
+import Web.ServerSession.Core (SessionMap)
 import Web.ServerSession.Core.StorageTests
 
 import qualified Control.Exception as E
 import qualified Database.Persist.TH as P
 import qualified Database.Persist.Sql as P
 
-P.mkMigrate "migrateAll" serverSessionDefs
+P.mkMigrate "migrateAll" (serverSessionDefs (Proxy :: Proxy SessionMap))
 
 main :: IO ()
 main = hspec $

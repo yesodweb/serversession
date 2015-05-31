@@ -1,13 +1,21 @@
 -- | Internal module exposing the guts of the package.  Use at
 -- your own risk.  No API stability guarantees apply.
+--
+-- @UndecidableInstances@ is required in order to implement @Eq@,
+-- @Ord@, @Show@, etc. on data types that have @Decomposed@
+-- fields, and should be fairly safe.
 module Web.ServerSession.Core.Internal
   ( SessionId(..)
   , checkSessionId
   , generateSessionId
 
-  , SessionMap
   , AuthId
   , Session(..)
+  , SessionMap(..)
+
+  , IsSessionData(..)
+  , DecomposedSession(..)
+
   , Storage(..)
   , StorageException(..)
 
@@ -32,10 +40,7 @@ module Web.ServerSession.Core.Internal
   , saveSession
   , SaveSessionToken(..)
   , invalidateIfNeeded
-  , DecomposedSession(..)
-  , decomposeSession
   , saveSessionOnDb
-  , toSessionMap
   , forceInvalidateKey
   , ForceInvalidate(..)
   ) where
@@ -64,7 +69,8 @@ import qualified Data.Text.Encoding as TE
 
 
 -- | The ID of a session.  Always 18 bytes base64url-encoded as
--- 24 characters.
+-- 24 characters.  The @sess@ type variable is a phantom type for
+-- the session data type this session ID points to.
 --
 -- Implementation notes:
 --
@@ -72,24 +78,24 @@ import qualified Data.Text.Encoding as TE
 --
 --   * Use 'generateSessionId' for securely generating new
 --   session IDs.
-newtype SessionId = S { unS :: Text }
+newtype SessionId sess = S { unS :: Text }
   deriving (Eq, Ord, Show, Read, Typeable)
 
 -- | Sanity checks input on 'fromPathPiece' (untrusted input).
-instance PathPiece SessionId where
+instance PathPiece (SessionId sess) where
   toPathPiece = unS
   fromPathPiece = checkSessionId
 
-instance A.FromJSON SessionId where
+instance A.FromJSON (SessionId sess) where
   parseJSON = fmap S . A.parseJSON
 
-instance A.ToJSON SessionId where
+instance A.ToJSON (SessionId sess) where
   toJSON = A.toJSON . unS
 
 
 -- | (Internal) Check that the given text is a base64url-encoded
 -- representation of 18 bytes.
-checkSessionId :: Text -> Maybe SessionId
+checkSessionId :: Text -> Maybe (SessionId sess)
 checkSessionId text = do
   guard (T.length text == 24)
   let bs = TE.encodeUtf8 text
@@ -99,21 +105,11 @@ checkSessionId text = do
 
 
 -- | Securely generate a new SessionId.
-generateSessionId :: N.Generator -> IO SessionId
+generateSessionId :: N.Generator -> IO (SessionId sess)
 generateSessionId = fmap S . N.nonce128urlT
 
 
 ----------------------------------------------------------------------
-
-
--- | A session map.
---
--- This is the representation of a session used by the
--- @serversession@ family of packages, transferring data between
--- this core package and frontend packages.  Serversession
--- storage backend packages should use 'Session'.  End users
--- should use their web framework's support for sessions.
-type SessionMap = M.Map Text ByteString
 
 
 -- | Value of the 'authKey' session key.
@@ -124,49 +120,179 @@ type AuthId = ByteString
 --
 -- This representation is used by the @serversession@ family of
 -- packages, transferring data between this core package and
--- storage backend packages.  Serversession frontend packages
--- should use 'SessionMap'.  End users should use their web
--- framework's support for sessions.
-data Session =
+-- storage backend packages.  The @sess@ type variable describes
+-- the session data type.
+data Session sess =
   Session
-    { sessionKey :: SessionId
+    { sessionKey :: SessionId sess
       -- ^ Session ID, primary key.
     , sessionAuthId :: Maybe AuthId
       -- ^ Value of 'authKey' session key, separate from the rest.
-    , sessionData :: SessionMap
+    , sessionData :: Decomposed sess
       -- ^ Rest of the session data.
     , sessionCreatedAt :: UTCTime
       -- ^ When this session was created.
     , sessionAccessedAt :: UTCTime
       -- ^ When this session was last accessed.
-    } deriving (Eq, Ord, Show, Typeable)
+    } deriving (Typeable)
+
+deriving instance Eq   (Decomposed sess) => Eq   (Session sess)
+deriving instance Ord  (Decomposed sess) => Ord  (Session sess)
+deriving instance Show (Decomposed sess) => Show (Session sess)
 
 
--- | A storage backend for server-side sessions.
-class MonadIO (TransactionM s) => Storage s where
+-- | A @newtype@ for a common session map.
+--
+-- This is a common representation of a session.  Although
+-- @serversession@ has generalized session data types, you can
+-- use this one if you don't want to worry about it.  We strive
+-- to support this session data type on all frontends and storage
+-- backends.
+newtype SessionMap =
+  SessionMap { unSessionMap :: M.Map Text ByteString }
+  deriving (Eq, Ord, Show, Read, Typeable)
+
+
+----------------------------------------------------------------------
+
+
+-- | Class for data types to be used as session data
+-- (cf. 'sessionData', 'SessionData').
+--
+-- The @Show@ constrain is needed for 'StorageException'.
+class ( Show (Decomposed sess)
+      , Typeable (Decomposed sess)
+      , Typeable sess
+      ) => IsSessionData sess where
+  -- | The type of the session data after being decomposed.  This
+  -- may be the same as @sess@.
+  type Decomposed sess :: *
+
+  -- | Empty session data.
+  emptySession :: sess
+
+  -- | Decompose session data into:
+  --
+  --   * The auth ID of the logged in user (cf. 'setAuthKey',
+  --   'dsAuthId').
+  --
+  --   * If the session is being forced to be invalidated
+  --   (cf. 'forceInvalidateKey', 'ForceInvalidate').
+  --
+  --   * The rest of the session data (cf. 'Decomposed').
+  decomposeSession
+    :: Text                   -- ^ The auth key (cf. 'setAuthKey').
+    -> sess                   -- ^ Session data to be decomposed.
+    -> DecomposedSession sess -- ^ Decomposed session data.
+
+  -- | Recompose a decomposed session again into a proper @sess@.
+  recomposeSession
+    :: Text                   -- ^ The auth key (cf. 'setAuthKey').
+    -> Maybe AuthId           -- ^ The @AuthId@, if any.
+    -> Decomposed sess        -- ^ Decomposed session data to be recomposed.
+    -> sess                   -- ^ Recomposed session data.
+
+  -- | Returns @True@ when both session datas are to be
+  -- considered the same.
+  --
+  -- This is used to optimize storage calls
+  -- (cf. 'setTimeoutResolution').  Always returning @False@ will
+  -- disable the optimization but won't have any other adverse
+  -- effects.
+  --
+  -- For data types implementing 'Eq', this is usually a good
+  -- implementation:
+  --
+  -- @
+  -- isSameDecomposed _ = (==)
+  -- @
+  isSameDecomposed :: proxy sess -> Decomposed sess -> Decomposed sess -> Bool
+
+  -- | Returns @True@ if the decomposed session data is to be
+  -- considered @empty@.
+  --
+  -- This is used to avoid storing empty session data if at all
+  -- possible.  Always returning @False@ will disable the
+  -- optimization but won't have any other adverse effects.
+  isDecomposedEmpty :: proxy sess -> Decomposed sess -> Bool
+
+
+-- | A 'SessionMap' decomposes into a 'SessionMap' minus the keys
+-- that were removed.  The auth key is added back when
+-- recomposing.
+instance IsSessionData SessionMap where
+  type Decomposed SessionMap = SessionMap
+
+  emptySession = SessionMap M.empty
+
+  isSameDecomposed _ = (==)
+
+  decomposeSession authKey_ (SessionMap sm1) =
+    let (authId, sm2) = M.updateLookupWithKey (\_ _ -> Nothing) authKey_           sm1
+        (force,  sm3) = M.updateLookupWithKey (\_ _ -> Nothing) forceInvalidateKey sm2
+    in DecomposedSession
+         { dsAuthId          = authId
+         , dsForceInvalidate = maybe DoNotForceInvalidate (read . B8.unpack) force
+         , dsDecomposed      = SessionMap sm3 }
+
+  recomposeSession authKey_ mauthId (SessionMap sm) =
+    SessionMap $ maybe id (M.insert authKey_) mauthId sm
+
+  isDecomposedEmpty _ = M.null . unSessionMap
+
+
+-- | A session data type @sess@ with its special variables taken apart.
+data DecomposedSession sess =
+  DecomposedSession
+    { dsAuthId          :: !(Maybe ByteString)
+    , dsForceInvalidate :: !ForceInvalidate
+    , dsDecomposed      :: !(Decomposed sess)
+    } deriving (Typeable)
+
+deriving instance Eq   (Decomposed sess) => Eq   (DecomposedSession sess)
+deriving instance Ord  (Decomposed sess) => Ord  (DecomposedSession sess)
+deriving instance Show (Decomposed sess) => Show (DecomposedSession sess)
+
+
+----------------------------------------------------------------------
+
+
+-- | A storage backend @sto@ for server-side sessions.  The
+-- @sess@ session data type and\/or its 'Decomposed' version may
+-- be constrained depending on the storage backend capabilities.
+class ( Typeable sto
+      , MonadIO (TransactionM sto)
+      , IsSessionData (SessionData sto)
+      ) => Storage sto where
+  -- | The session data type used by this storage.
+  type SessionData sto :: *
+
   -- | Monad where transactions happen for this backend.
   -- We do not require transactions to be ACID.
-  type TransactionM s :: * -> *
+  type TransactionM sto :: * -> *
 
   -- | Run a transaction on the IO monad.
-  runTransactionM :: s -> TransactionM s a -> IO a
+  runTransactionM :: sto -> TransactionM sto a -> IO a
 
   -- | Get the session for the given session ID.  Returns
   -- @Nothing@ if the session is not found.
-  getSession :: s -> SessionId -> TransactionM s (Maybe Session)
+  getSession
+    :: sto
+    -> SessionId (SessionData sto)
+    -> TransactionM sto (Maybe (Session (SessionData sto)))
 
   -- | Delete the session with given session ID.  Does not do
   -- anything if the session is not found.
-  deleteSession :: s -> SessionId -> TransactionM s ()
+  deleteSession :: sto -> SessionId (SessionData sto) -> TransactionM sto ()
 
   -- | Delete all sessions of the given auth ID.  Does not do
   -- anything if there are no sessions of the given auth ID.
-  deleteAllSessionsOfAuthId :: s -> AuthId -> TransactionM s ()
+  deleteAllSessionsOfAuthId :: sto -> AuthId -> TransactionM sto ()
 
   -- | Insert a new session.  Throws 'SessionAlreadyExists' if
   -- there already exists a session with the same session ID (we
   -- only call this method after generating a fresh session ID).
-  insertSession :: s -> Session -> TransactionM s ()
+  insertSession :: sto -> Session (SessionData sto) -> TransactionM sto ()
 
   -- | Replace the contents of a session.  Throws
   -- 'SessionDoesNotExist' if there is no session with the given
@@ -211,27 +337,30 @@ class MonadIO (TransactionM s) => Storage s where
   -- Most of the time this discussion does not matter.
   -- Invalidations usually occur at times where only one request
   -- is flying.
-  replaceSession :: s -> Session -> TransactionM s ()
+  replaceSession :: sto -> Session (SessionData sto) -> TransactionM sto ()
 
 
 -- | Common exceptions that may be thrown by any storage.
-data StorageException =
+data StorageException sto =
     -- | Exception thrown by 'insertSession' whenever a session
     -- with same ID already exists.
     SessionAlreadyExists
-      { seExistingSession :: Session
-      , seNewSession      :: Session }
+      { seExistingSession :: Session (SessionData sto)
+      , seNewSession      :: Session (SessionData sto) }
     -- | Exception thrown by 'replaceSession' whenever trying to
     -- replace a session that is not present on the storage.
   | SessionDoesNotExist
-      { seNewSession      :: Session }
-    deriving (Show, Typeable)
+      { seNewSession      :: Session (SessionData sto) }
+    deriving (Typeable)
 
-instance E.Exception StorageException where
+deriving instance Eq   (Decomposed (SessionData sto)) => Eq   (StorageException sto)
+deriving instance Ord  (Decomposed (SessionData sto)) => Ord  (StorageException sto)
+deriving instance Show (Decomposed (SessionData sto)) => Show (StorageException sto)
+
+instance Storage sto => E.Exception (StorageException sto) where
 
 
 ----------------------------------------------------------------------
-
 
 
 -- TODO: delete expired sessions.
@@ -256,10 +385,10 @@ instance E.Exception StorageException where
 --   and/or secure ('setSecureCookies').
 --
 -- Create a new 'State' using 'createState'.
-data State s =
+data State sto =
   State
     { generator         :: !N.Generator
-    , storage           :: !s
+    , storage           :: !sto
     , cookieName        :: !Text
     , authKey           :: !Text
     , idleTimeout       :: !(Maybe NominalDiffTime)
@@ -273,7 +402,7 @@ data State s =
 
 -- | Create a new 'State' for the server-side session backend
 -- using the given storage backend.
-createState :: MonadIO m => s -> m (State s)
+createState :: MonadIO m => sto -> m (State sto)
 createState sto = do
   gen <- N.new
   return State
@@ -294,13 +423,21 @@ createState sto = do
 -- Defaults to \"JSESSIONID\", which is a generic cookie name
 -- used by many frameworks thus making it harder to fingerprint
 -- this implementation.
-setCookieName :: Text -> State s -> State s
+setCookieName :: Text -> State sto -> State sto
 setCookieName val state = state { cookieName = val }
 
 
 -- | Set the name of the session variable that keeps track of the
--- logged user.  Defaults to \"_ID\" (used by @yesod-auth@).
-setAuthKey :: Text -> State s -> State s
+-- logged user.
+--
+-- This setting is used by session data types that are
+-- @Map@-alike, using a @lookup@ function.  However, the
+-- 'IsSessionData' instance of a session data type may choose not
+-- to use it.  For example, if you implemented a custom data
+-- type, you could return the @AuthId@ without needing a lookup.
+--
+-- Defaults to \"_ID\" (used by @yesod-auth@).
+setAuthKey :: Text -> State sto -> State sto
 setAuthKey val state = state { authKey = val }
 
 
@@ -318,7 +455,7 @@ setAuthKey val state = state { authKey = val }
 -- (<https://www.owasp.org/index.php/Session_Management_Cheat_Sheet#Idle_Timeout Source>)
 --
 -- Defaults to 7 days.
-setIdleTimeout :: Maybe NominalDiffTime -> State s -> State s
+setIdleTimeout :: Maybe NominalDiffTime -> State sto -> State sto
 setIdleTimeout (Just d) _ | d <= 0 = error "serversession/setIdleTimeout: Timeout should be positive."
 setIdleTimeout val state = state { idleTimeout = val }
 
@@ -338,7 +475,7 @@ setIdleTimeout val state = state { idleTimeout = val }
 -- (<https://www.owasp.org/index.php/Session_Management_Cheat_Sheet#Absolute_Timeout Source>)
 --
 -- Defaults to 60 days.
-setAbsoluteTimeout :: Maybe NominalDiffTime -> State s -> State s
+setAbsoluteTimeout :: Maybe NominalDiffTime -> State sto -> State sto
 setAbsoluteTimeout (Just d) _ | d <= 0 = error "serversession/setAbsoluteTimeout: Timeout should be positive."
 setAbsoluteTimeout val state = state { absoluteTimeout = val }
 
@@ -368,7 +505,7 @@ setAbsoluteTimeout val state = state { absoluteTimeout = val }
 -- becomes disabled and the session will always be updated.
 --
 -- Defaults to 10 minutes.
-setTimeoutResolution :: Maybe NominalDiffTime -> State s -> State s
+setTimeoutResolution :: Maybe NominalDiffTime -> State sto -> State sto
 setTimeoutResolution (Just d) _ | d <= 0 = error "serversession/setTimeoutResolution: Resolution should be positive."
 setTimeoutResolution val state = state { timeoutResolution = val }
 
@@ -382,7 +519,7 @@ setTimeoutResolution val state = state { timeoutResolution = val }
 -- cookie is set to expire in 10 years.
 --
 -- Defaults to @True@.
-setPersistentCookies :: Bool -> State s -> State s
+setPersistentCookies :: Bool -> State sto -> State sto
 setPersistentCookies val state = state { persistentCookies = val }
 
 
@@ -393,7 +530,7 @@ setPersistentCookies val state = state { persistentCookies = val }
 -- It's highly recommended to set this attribute to @True@.
 --
 -- Defaults to @True@.
-setHttpOnlyCookies :: Bool -> State s -> State s
+setHttpOnlyCookies :: Bool -> State sto -> State sto
 setHttpOnlyCookies val state = state { httpOnlyCookies = val }
 
 
@@ -405,22 +542,22 @@ setHttpOnlyCookies val state = state { httpOnlyCookies = val }
 -- @False@.
 --
 -- Defaults to @False@.
-setSecureCookies :: Bool -> State s -> State s
+setSecureCookies :: Bool -> State sto -> State sto
 setSecureCookies val state = state { secureCookies = val }
 
 
 -- | Cf. 'setCookieName'.
-getCookieName :: State s -> Text
+getCookieName :: State sto -> Text
 getCookieName = cookieName
 
 
 -- | Cf. 'setHttpOnlyCookies'.
-getHttpOnlyCookies :: State s -> Bool
+getHttpOnlyCookies :: State sto -> Bool
 getHttpOnlyCookies = httpOnlyCookies
 
 
 -- | Cf. 'setSecureCookies'.
-getSecureCookies :: State s -> Bool
+getSecureCookies :: State sto -> Bool
 getSecureCookies = secureCookies
 
 
@@ -432,25 +569,33 @@ getSecureCookies = secureCookies
 --
 -- Returns:
 --
---   * The 'SessionMap' to be used by the frontend as the current
---   session's value.
+--   * The session data @sess@ to be used by the frontend as the
+--   current session's value.
 --
 --   * Information to be passed back to 'saveSession' on the end
 --   of the request in order to save the session.
-loadSession :: Storage s => State s -> Maybe ByteString -> IO (SessionMap, SaveSessionToken)
+loadSession
+  :: Storage sto
+  => State sto
+  -> Maybe ByteString
+  -> IO (SessionData sto, SaveSessionToken sto)
 loadSession state mcookieVal = do
   now <- getCurrentTime
   let maybeInputId = mcookieVal >>= fromPathPiece . TE.decodeUtf8
       get          = runTransactionM (storage state) . getSession (storage state)
       checkedGet   = fmap (>>= checkExpired now state) . get
   maybeInput <- maybe (return Nothing) checkedGet maybeInputId
-  let inputSessionMap = maybe M.empty (toSessionMap state) maybeInput
-  return (inputSessionMap, SaveSessionToken maybeInput now)
+  let inputData =
+        maybe
+          emptySession
+          (\s -> recomposeSession (authKey state) (sessionAuthId s) (sessionData s))
+          maybeInput
+  return (inputData, SaveSessionToken maybeInput now)
 
 
 -- | Check if a session @s@ has expired.  Returns the @Just s@ if
 -- not expired, or @Nothing@ if expired.
-checkExpired :: UTCTime {-^ Now. -} -> State s -> Session -> Maybe Session
+checkExpired :: UTCTime {-^ Now. -} -> State sto -> Session sess -> Maybe (Session sess)
 checkExpired now state session =
   let expired = maybe False (< now) (nextExpires state session)
   in guard (not expired) >> return session
@@ -460,7 +605,7 @@ checkExpired now state session =
 -- will expire assuming that it sees no activity until then.
 -- Returns @Nothing@ iff the state does not have any expirations
 -- set to @Just@.
-nextExpires :: State s -> Session -> Maybe UTCTime
+nextExpires :: State sto -> Session sess -> Maybe UTCTime
 nextExpires State {..} Session {..} =
   let viaIdle     = flip addUTCTime sessionAccessedAt <$> idleTimeout
       viaAbsolute = flip addUTCTime sessionCreatedAt  <$> absoluteTimeout
@@ -471,7 +616,7 @@ nextExpires State {..} Session {..} =
 
 -- | Calculate the date that should be used for the cookie's
 -- \"Expires\" field.
-cookieExpires :: State s -> Session -> Maybe UTCTime
+cookieExpires :: State sto -> Session sess -> Maybe UTCTime
 cookieExpires State {..} _ | not persistentCookies = Nothing
 cookieExpires state session =
   Just $ fromMaybe tenYearsFromNow $ nextExpires state session
@@ -481,9 +626,13 @@ cookieExpires state session =
 
 -- | Opaque token containing the necessary information for
 -- 'saveSession' to save the session.
-data SaveSessionToken =
-  SaveSessionToken (Maybe Session) UTCTime
-  deriving (Eq, Show, Typeable)
+data SaveSessionToken sto =
+  SaveSessionToken (Maybe (Session (SessionData sto))) UTCTime
+  deriving (Typeable)
+
+deriving instance Eq   (Decomposed (SessionData sto)) => Eq   (SaveSessionToken sto)
+deriving instance Ord  (Decomposed (SessionData sto)) => Ord  (SaveSessionToken sto)
+deriving instance Show (Decomposed (SessionData sto)) => Show (SaveSessionToken sto)
 
 
 -- | Save the session on the storage backend.  A
@@ -496,12 +645,17 @@ data SaveSessionToken =
 -- and clear every other sesssion variable, then 'saveSession'
 -- will invalidate the older session but will avoid creating a
 -- new, empty one.
-saveSession :: Storage s => State s -> SaveSessionToken -> SessionMap -> IO (Maybe Session)
-saveSession state (SaveSessionToken maybeInput now) wholeOutputSessionMap =
+saveSession
+  :: Storage sto
+  => State sto
+  -> SaveSessionToken sto
+  -> SessionData sto
+  -> IO (Maybe (Session (SessionData sto)))
+saveSession state (SaveSessionToken maybeInput now) outputData =
   runTransactionM (storage state) $ do
-    let decomposedSessionMap = decomposeSession state wholeOutputSessionMap
-    newMaybeInput <- invalidateIfNeeded state maybeInput decomposedSessionMap
-    saveSessionOnDb state now newMaybeInput decomposedSessionMap
+    let outputDecomp = decomposeSession (authKey state) outputData
+    newMaybeInput <- invalidateIfNeeded state maybeInput outputDecomp
+    saveSessionOnDb state now newMaybeInput outputDecomp
 
 
 -- | Invalidates an old session ID if needed.  Returns the
@@ -512,11 +666,11 @@ saveSession state (SaveSessionToken maybeInput now) wholeOutputSessionMap =
 -- fixation attacks.  We also invalidate when asked to via
 -- 'forceInvalidate'.
 invalidateIfNeeded
-  :: Storage s
-  => State s
-  -> Maybe Session
-  -> DecomposedSession
-  -> TransactionM s (Maybe Session)
+  :: Storage sto
+  => State sto
+  -> Maybe (Session (SessionData sto))
+  -> DecomposedSession (SessionData sto)
+  -> TransactionM sto (Maybe (Session (SessionData sto)))
 invalidateIfNeeded state maybeInput DecomposedSession {..} = do
   -- Decide which action to take.
   -- "invalidateOthers implies invalidateCurrent" should be true below.
@@ -531,26 +685,6 @@ invalidateIfNeeded state maybeInput DecomposedSession {..} = do
   return $ guard (not invalidateCurrent) >> maybeInput
 
 
--- | A 'SessionMap' with its special variables taken apart.
-data DecomposedSession =
-  DecomposedSession
-    { dsAuthId          :: !(Maybe ByteString)
-    , dsForceInvalidate :: !ForceInvalidate
-    , dsSessionMap      :: !SessionMap
-    } deriving (Eq, Show, Typeable)
-
-
--- | Decompose a session (see 'DecomposedSession').
-decomposeSession :: State s -> SessionMap -> DecomposedSession
-decomposeSession state sm1 =
-  let (authId, sm2) = M.updateLookupWithKey (\_ _ -> Nothing) (authKey state)    sm1
-      (force,  sm3) = M.updateLookupWithKey (\_ _ -> Nothing) forceInvalidateKey sm2
-  in DecomposedSession
-       { dsAuthId          = authId
-       , dsForceInvalidate = maybe DoNotForceInvalidate (read . B8.unpack) force
-       , dsSessionMap      = sm3 }
-
-
 -- | Save a session on the database.  If an old session is
 -- supplied, it is replaced, otherwise a new session is
 -- generated.  If the session is empty, it is not saved and
@@ -558,24 +692,30 @@ decomposeSession state sm1 =
 -- is applied (cf. 'setTimeoutResolution'), the old session is
 -- returned and no update is made.
 saveSessionOnDb
-  :: Storage s
-  => State s
-  -> UTCTime                        -- ^ Now.
-  -> Maybe Session                  -- ^ The old session, if any.
-  -> DecomposedSession              -- ^ The session data to be saved.
-  -> TransactionM s (Maybe Session) -- ^ Copy of saved session.
+  :: forall sto. Storage sto
+  => State sto
+  -> UTCTime                                            -- ^ Now.
+  -> Maybe (Session (SessionData sto))                  -- ^ The old session, if any.
+  -> DecomposedSession (SessionData sto)                -- ^ The session data to be saved.
+  -> TransactionM sto (Maybe (Session (SessionData sto))) -- ^ Copy of saved session.
 saveSessionOnDb _ _ Nothing (DecomposedSession Nothing _ m)
   -- Return Nothing without doing anything whenever the session
   -- is empty (including auth ID) and there was no prior session.
-  | M.null m = return Nothing
-saveSessionOnDb State { timeoutResolution = Just res } now (Just old) (DecomposedSession authId _ sessionMap)
+  | isDecomposedEmpty proxy m = return Nothing
+    where
+      proxy :: Maybe (SessionData sto)
+      proxy = Nothing
+saveSessionOnDb State { timeoutResolution = Just res } now (Just old) (DecomposedSession authId _ newSession)
   -- If the data is the same and the old access time is within
   -- the timeout resolution, just return the old session without
   -- doing anything else.
-  | sessionData   old == sessionMap &&
-    sessionAuthId old == authId &&
+  | sessionAuthId old == authId &&
+    isSameDecomposed proxy (sessionData old) newSession &&
     abs (diffUTCTime now (sessionAccessedAt old)) < res =
       return (Just old)
+    where
+      proxy :: Maybe (SessionData sto)
+      proxy = Nothing
 saveSessionOnDb state now maybeInput DecomposedSession {..} = do
   -- Generate properties if needed or take them from previous
   -- saved session.
@@ -593,18 +733,12 @@ saveSessionOnDb state now maybeInput DecomposedSession {..} = do
   let session = Session
         { sessionKey        = key
         , sessionAuthId     = dsAuthId
-        , sessionData       = dsSessionMap
+        , sessionData       = dsDecomposed
         , sessionCreatedAt  = createdAt
         , sessionAccessedAt = now
         }
   saveToDb session
   return (Just session)
-
-
--- | Create a 'SessionMap' from a 'Session'.
-toSessionMap :: State s -> Session -> SessionMap
-toSessionMap state Session {..} =
-  maybe id (M.insert $ authKey state) sessionAuthId sessionData
 
 
 -- | The session key used to signal that the session ID should be

@@ -3,6 +3,7 @@
 module Web.ServerSession.Frontend.Yesod.Internal
   ( simpleBackend
   , backend
+  , IsSessionMap(..)
   , createCookie
   , findSessionId
   , forceInvalidate
@@ -12,6 +13,7 @@ import Control.Monad (guard)
 import Control.Monad.IO.Class (MonadIO)
 import Data.ByteString (ByteString)
 import Data.Default (def)
+import Data.Text (Text)
 import Web.PathPieces (toPathPiece)
 import Web.ServerSession.Core
 import Yesod.Core (MonadHandler)
@@ -19,6 +21,7 @@ import Yesod.Core.Handler (setSessionBS)
 import Yesod.Core.Types (Header(AddCookie), SessionBackend(..))
 
 import qualified Data.ByteString.Char8 as B8
+import qualified Data.Map as M
 import qualified Data.Text.Encoding as TE
 import qualified Data.Time as TI
 import qualified Network.Wai as W
@@ -53,34 +56,62 @@ import qualified Web.Cookie as C
 --                . setAbsoluteTimeout (Just $ 60*60*24)
 --                . setSecureCookies True
 -- @
+--
+-- This is a simple version of 'backend' specialized for using
+-- 'SessionMap' as 'SessionData'.  If you want to use a different
+-- session data type, please use 'backend' directly (tip: take a
+-- peek at this function's source).
 simpleBackend
-  :: (MonadIO m, Storage s)
-  => (State s -> State s)     -- ^ Set any options on the @serversession@ state.
-  -> s                        -- ^ Storage backend.
+  :: (MonadIO m, Storage sto, SessionData sto ~ SessionMap)
+  => (State sto -> State sto) -- ^ Set any options on the @serversession@ state.
+  -> sto                      -- ^ Storage backend.
   -> m (Maybe SessionBackend) -- ^ Yesod session backend (always @Just@).
 simpleBackend opts s =
   return . Just . backend . opts =<< createState s
 
 
 -- | Construct the server-side session backend using the given
--- state.
+-- state.  This is a generalized version of 'simpleBackend'.
+--
+-- In order to use the Yesod frontend, you 'SessionData' needs to
+-- implement 'IsSessionMap'.
 backend
-  :: Storage s
-  => State s        -- ^ @serversession@ state, incl. storage backend.
+  :: (Storage sto, IsSessionMap (SessionData sto))
+  => State sto      -- ^ @serversession@ state, incl. storage backend.
   -> SessionBackend -- ^ Yesod session backend.
-backend state =
-  SessionBackend {
-    sbLoadSession = \req -> do
+backend state = SessionBackend { sbLoadSession = load }
+  where
+    load req = do
       let rawSessionId = findSessionId cookieNameBS req
-      (sessionMap, saveSessionToken) <- loadSession state rawSessionId
+      (data_, saveSessionToken) <- loadSession state rawSessionId
       let save =
             fmap ((:[]) . maybe (deleteCookie state cookieNameBS)
                                 (createCookie state cookieNameBS)) .
-            saveSession state saveSessionToken
-      return (sessionMap, save)
-  }
-  where
+            saveSession state saveSessionToken .
+            fromSessionMap
+      return (toSessionMap data_, save)
+
     cookieNameBS = TE.encodeUtf8 $ getCookieName state
+
+
+----------------------------------------------------------------------
+
+
+-- | Class for session data types meant to be used with the Yesod
+-- frontend.  The only session interface Yesod provides is via
+-- session variables, so your data type needs to be convertible
+-- from/to a 'M.Map' of 'Text' to 'ByteString'.
+class IsSessionMap sess where
+  toSessionMap   :: sess -> M.Map Text ByteString
+  fromSessionMap :: M.Map Text ByteString -> sess
+
+
+instance IsSessionMap SessionMap where
+  toSessionMap   = unSessionMap
+  fromSessionMap =   SessionMap
+
+
+----------------------------------------------------------------------
 
 
 -- | Create a cookie for the given session.
@@ -88,7 +119,7 @@ backend state =
 -- The cookie expiration is set via 'nextExpires'.  Note that
 -- this is just an optimization, as the expiration is checked on
 -- the server-side as well.
-createCookie :: State s -> ByteString -> Session -> Header
+createCookie :: State sto -> ByteString -> Session sess -> Header
 createCookie state cookieNameBS session =
   -- Generate a cookie with the final session ID.
   AddCookie def
@@ -110,7 +141,7 @@ createCookie state cookieNameBS session =
 --
 --   * If the user had a session cookie that was invalidated,
 --   this will remove the invalid cookie from the client.
-deleteCookie :: State s -> ByteString -> Header
+deleteCookie :: State sto -> ByteString -> Header
 deleteCookie state cookieNameBS =
   AddCookie def
     { C.setCookieName     = cookieNameBS

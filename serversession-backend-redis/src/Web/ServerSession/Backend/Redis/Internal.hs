@@ -9,6 +9,7 @@ module Web.ServerSession.Backend.Redis.Internal
   , rSessionKey
   , rAuthKey
 
+  , RedisSession(..)
   , parseSession
   , printSession
   , parseUTCTime
@@ -22,6 +23,7 @@ module Web.ServerSession.Backend.Redis.Internal
   , deleteAllSessionsOfAuthIdImpl
   , insertSessionImpl
   , replaceSessionImpl
+  , throwRS
   ) where
 
 import Control.Applicative ((<$))
@@ -31,6 +33,7 @@ import Control.Monad.IO.Class (liftIO)
 import Data.ByteString (ByteString)
 import Data.List (partition)
 import Data.Maybe (fromMaybe)
+import Data.Proxy (Proxy(..))
 import Data.Typeable (Typeable)
 import Web.PathPieces (toPathPiece)
 import Web.ServerSession.Core
@@ -49,7 +52,7 @@ import qualified Data.Time.Format as TI
 
 
 -- | Session storage backend using Redis via the @hedis@ package.
-newtype RedisStorage =
+newtype RedisStorage sess =
   RedisStorage
     { connPool :: R.Connection
       -- ^ Connection pool to the Redis server.
@@ -58,8 +61,9 @@ newtype RedisStorage =
 
 -- | We do not provide any ACID guarantees for different actions
 -- running inside the same @TransactionM RedisStorage@.
-instance Storage RedisStorage where
-  type TransactionM RedisStorage = R.Redis
+instance RedisSession sess => Storage (RedisStorage sess) where
+  type SessionData  (RedisStorage sess) = sess
+  type TransactionM (RedisStorage sess) = R.Redis
   runTransactionM = R.runRedis . connPool
   getSession                _ = getSessionImpl
   deleteSession             _ = deleteSessionImpl
@@ -102,7 +106,7 @@ unwrap act = act >>= either (liftIO . E.throwIO . ExpectedRight) return
 
 
 -- | Redis key for the given session ID.
-rSessionKey :: SessionId -> ByteString
+rSessionKey :: SessionId sess -> ByteString
 rSessionKey = B.append "ssr:session:" . TE.encodeUtf8 . toPathPiece
 
 
@@ -114,8 +118,39 @@ rAuthKey = B.append "ssr:authid:"
 ----------------------------------------------------------------------
 
 
+-- | Class for data types that can be used as session data for
+-- the Redis backend.
+--
+-- It should hold that
+--
+-- @
+-- fromHash p . perm . toHash p  ===  id
+-- @
+--
+-- for all list permutations @perm :: [a] -> [a]@,
+-- where @p :: Proxy sess@.
+class IsSessionData sess => RedisSession sess where
+  -- | Transform a decomposed session into a Redis hash.  Keys
+  -- will be prepended with @\"data:\"@ before being stored.
+  toHash   :: Proxy sess -> Decomposed sess -> [(ByteString, ByteString)]
+
+  -- | Parse back a Redis hash into session data.
+  fromHash :: Proxy sess -> [(ByteString, ByteString)] -> Decomposed sess
+
+
+-- | Assumes that keys are UTF-8 encoded when parsing (which is
+-- true if keys are always generated via @toHash@).
+instance RedisSession SessionMap where
+  toHash   _ = map (first TE.encodeUtf8) . M.toList . unSessionMap
+  fromHash _ = SessionMap . M.fromList . map (first TE.decodeUtf8)
+
+
 -- | Parse a 'Session' from a Redis hash.
-parseSession :: SessionId -> [(ByteString, ByteString)] -> Maybe Session
+parseSession
+  :: forall sess. RedisSession sess
+  => SessionId sess
+  -> [(ByteString, ByteString)]
+  -> Maybe (Session sess)
 parseSession _   []  = Nothing
 parseSession sid bss =
   let (externalList, internalList) = partition (B8.isPrefixOf "data:" . fst) bss
@@ -124,25 +159,26 @@ parseSession sid bss =
       accessedAt = parseUTCTime $ lookup' "internal:accessedAt"
       lookup' k = fromMaybe (error err) $ lookup k internalList
         where err = "serversession-backend-redis/parseSession: missing key " ++ show k
-      sessionMap = M.fromList $ map (first $ TE.decodeUtf8 . removePrefix) externalList
+      data_ = fromHash p $ map (first removePrefix) externalList
         where removePrefix bs = let ("data:", key) = B8.splitAt 5 bs in key
+              p = Proxy :: Proxy sess
   in Just Session
        { sessionKey        = sid
        , sessionAuthId     = authId
-       , sessionData       = sessionMap
+       , sessionData       = data_
        , sessionCreatedAt  = createdAt
        , sessionAccessedAt = accessedAt
        }
 
 
 -- | Convert a 'Session' into a Redis hash.
-printSession :: Session -> [(ByteString, ByteString)]
+printSession :: forall sess. RedisSession sess => Session sess -> [(ByteString, ByteString)]
 printSession Session {..} =
   maybe id ((:) . (,) "internal:authId") sessionAuthId $
   (:) ("internal:createdAt",  printUTCTime sessionCreatedAt) $
   (:) ("internal:accessedAt", printUTCTime sessionAccessedAt) $
-  map (first $ B8.append "data:" . TE.encodeUtf8) $
-  M.toList sessionData
+  map (first $ B8.append "data:") $
+  toHash (Proxy :: Proxy sess) sessionData
 
 
 -- | Parse 'UTCTime' from a 'ByteString' stored on Redis.  Uses
@@ -177,12 +213,12 @@ batched f xs =
 
 
 -- | Get the session for the given session ID.
-getSessionImpl :: SessionId -> R.Redis (Maybe Session)
+getSessionImpl :: RedisSession sess => SessionId sess -> R.Redis (Maybe (Session sess))
 getSessionImpl sid = parseSession sid <$> unwrap (R.hgetall $ rSessionKey sid)
 
 
 -- | Delete the session with given session ID.
-deleteSessionImpl :: SessionId -> R.Redis ()
+deleteSessionImpl :: RedisSession sess => SessionId sess -> R.Redis ()
 deleteSessionImpl sid = do
   msession <- getSessionImpl sid
   case msession of
@@ -196,18 +232,22 @@ deleteSessionImpl sid = do
 
 -- | Remove the given 'SessionId' from the set of sessions of the
 -- given 'AuthId'.  Does not do anything if @Nothing@.
-removeSessionFromAuthId :: R.RedisCtx m f => SessionId -> Maybe AuthId -> m ()
+removeSessionFromAuthId :: R.RedisCtx m f => SessionId sess -> Maybe AuthId -> m ()
 removeSessionFromAuthId = fooSessionBarAuthId R.srem
 
 -- | Insert the given 'SessionId' into the set of sessions of the
 -- given 'AuthId'.  Does not do anything if @Nothing@.
-insertSessionForAuthId :: R.RedisCtx m f => SessionId -> Maybe AuthId -> m ()
+insertSessionForAuthId :: R.RedisCtx m f => SessionId sess -> Maybe AuthId -> m ()
 insertSessionForAuthId = fooSessionBarAuthId R.sadd
 
 
 -- | (Internal) Helper for 'removeSessionFromAuthId' and 'insertSessionForAuthId'
 fooSessionBarAuthId
-  :: R.RedisCtx m f => (ByteString -> [ByteString] -> m (f Integer)) -> SessionId -> Maybe AuthId -> m ()
+  :: R.RedisCtx m f
+  => (ByteString -> [ByteString] -> m (f Integer))
+  -> SessionId sess
+  -> Maybe AuthId
+  -> m ()
 fooSessionBarAuthId _   _   Nothing       = return ()
 fooSessionBarAuthId fun sid (Just authId) = void $ fun (rAuthKey authId) [rSessionKey sid]
 
@@ -220,13 +260,13 @@ deleteAllSessionsOfAuthIdImpl authId = do
 
 
 -- | Insert a new session.
-insertSessionImpl :: Session -> R.Redis ()
+insertSessionImpl :: RedisSession sess => Session sess -> R.Redis ()
 insertSessionImpl session = do
   -- Check that no old session exists.
   let sid = sessionKey session
   moldSession <- getSessionImpl sid
   case moldSession of
-    Just oldSession -> liftIO $ E.throwIO $ SessionAlreadyExists oldSession session
+    Just oldSession -> throwRS $ SessionAlreadyExists oldSession session
     Nothing -> do
       transaction $ do
         let sk = rSessionKey sid
@@ -237,13 +277,13 @@ insertSessionImpl session = do
 
 
 -- | Replace the contents of a session.
-replaceSessionImpl :: Session -> R.Redis ()
+replaceSessionImpl :: RedisSession sess => Session sess -> R.Redis ()
 replaceSessionImpl session = do
   -- Check that the old session exists.
   let sid = sessionKey session
   moldSession <- getSessionImpl sid
   case moldSession of
-    Nothing -> liftIO $ E.throwIO $ SessionDoesNotExist session
+    Nothing -> throwRS $ SessionDoesNotExist session
     Just oldSession -> do
       transaction $ do
         -- Delete the old session and set the new one.
@@ -259,3 +299,11 @@ replaceSessionImpl session = do
           insertSessionForAuthId sid newAuthId
 
         return (() <$ r)
+
+
+-- | Specialization of 'E.throwIO' for 'RedisStorage'.
+throwRS
+  :: Storage (RedisStorage sess)
+  => StorageException (RedisStorage sess)
+  -> R.Redis a
+throwRS = liftIO . E.throwIO

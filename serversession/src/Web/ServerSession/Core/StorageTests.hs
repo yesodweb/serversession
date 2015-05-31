@@ -18,7 +18,7 @@ import qualified Data.Text as T
 import qualified Data.Time as TI
 
 
--- | Execute all storage tests.
+-- | Execute all storage tests using 'SessionMap'.
 --
 -- This function is meant to be used with @hspec@.  However, we
 -- don't want to depend on @hspec@, so it takes the relevant
@@ -42,8 +42,8 @@ import qualified Data.Time as TI
 -- sequentially in order to reduce the peak memory usage of the
 -- test suite.
 allStorageTests
-  :: forall m s. (Monad m, Storage s)
-  => s                                                         -- ^ Storage backend.
+  :: forall m sto. (Monad m, Storage sto, SessionData sto ~ SessionMap)
+  => sto                                                       -- ^ Storage backend.
   -> (String -> IO () -> m ())                                 -- ^ @hspec@'s it.
   -> (forall a. IO a -> m a)                                   -- ^ @hspec@'s runIO.
   -> (m () -> m ())                                            -- ^ @hspec@'s parallel
@@ -52,7 +52,7 @@ allStorageTests
   -> (forall a e. Exception e => IO a -> (e -> Bool) -> IO ()) -- ^ @hspec@'s shouldThrow.
   -> m ()
 allStorageTests storage it runIO parallel _shouldBe shouldReturn shouldThrow = do
-  let run :: forall a. TransactionM s a -> IO a
+  let run :: forall a. TransactionM sto a -> IO a
       run = runTransactionM storage
 
   gen <- runIO N.new
@@ -131,7 +131,8 @@ allStorageTests storage it runIO parallel _shouldBe shouldReturn shouldThrow = d
         run (insertSession storage s1)
         run (getSession storage sid) `shouldReturn` Just s1
         run (insertSession storage s3) `shouldThrow`
-          (\(SessionAlreadyExists s1' s3') -> s1 == s1' && s3 == s3')
+          (\(SessionAlreadyExists s1' s3' :: StorageException sto) ->
+            s1 == s1' && s3 == s3')
         run (getSession storage sid) `shouldReturn` Just s1
 
     -- replaceSession
@@ -153,7 +154,8 @@ allStorageTests storage it runIO parallel _shouldBe shouldReturn shouldThrow = d
         s <- generateSession gen HasAuthId
         let sid = sessionKey s
         run (getSession storage sid) `shouldReturn` Nothing
-        run (replaceSession storage s) `shouldThrow` (\(SessionDoesNotExist s') -> s == s')
+        run (replaceSession storage s) `shouldThrow`
+          (\(SessionDoesNotExist s' :: StorageException sto) -> s == s')
         run (getSession storage sid) `shouldReturn` Nothing
         run (insertSession storage s)
         run (getSession storage sid) `shouldReturn` Just s
@@ -169,11 +171,11 @@ allStorageTests storage it runIO parallel _shouldBe shouldReturn shouldThrow = d
         let session = Session
               { sessionKey        = sid
               , sessionAuthId     = Nothing
-              , sessionData       = M.fromList vals
+              , sessionData       = SessionMap $ M.fromList vals
               , sessionCreatedAt  = now
               , sessionAccessedAt = now
               }
-            ver2 = session { sessionData = M.empty }
+            ver2 = session { sessionData = SessionMap M.empty }
         run (getSession storage sid) `shouldReturn` Nothing
         run (insertSession storage session)
         run (getSession storage sid) `shouldReturn` (Just session)
@@ -204,7 +206,7 @@ generateAuthId = N.nonce128url
 
 
 -- | Generate a random session for our tests.
-generateSession :: N.Generator -> HasAuthId -> IO Session
+generateSession :: N.Generator -> HasAuthId -> IO (Session SessionMap)
 generateSession gen hasAuthId = do
   sid <- generateSessionId gen
   authId <-
@@ -219,7 +221,7 @@ generateSession gen hasAuthId = do
   return Session
     { sessionKey        = sid
     , sessionAuthId     = authId
-    , sessionData       = data_
+    , sessionData       = SessionMap data_
     , sessionCreatedAt  = TI.addUTCTime (-1000) now
     , sessionAccessedAt = now
     }

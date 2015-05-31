@@ -37,7 +37,9 @@ library
     OverloadedStrings
     RecordWildCards
     ScopedTypeVariables
+    StandaloneDeriving
     TypeFamilies
+    UndecidableInstances
   ghc-options:     -Wall
 
 
@@ -53,9 +55,12 @@ test-suite tests
     , serversession
   extensions:
     DeriveDataTypeable
+    FlexibleContexts
     OverloadedStrings
+    StandaloneDeriving
     TupleSections
     TypeFamilies
+    UndecidableInstances
   main-is:         Main.hs
   ghc-options:     -Wall -threaded -with-rtsopts=-N
 

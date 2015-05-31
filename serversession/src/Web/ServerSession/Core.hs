@@ -6,9 +6,11 @@ module Web.ServerSession.Core
   , Session(..)
   , Storage(..)
   , StorageException(..)
+  , IsSessionData(..)
+  , DecomposedSession(..)
 
     -- * For serversession frontends
-  , SessionMap
+  , SessionMap(..)
   , State
   , createState
   , getCookieName

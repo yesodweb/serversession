@@ -21,6 +21,7 @@ library
     , containers
     , hedis                     == 0.6.*
     , path-pieces
+    , tagged                    >= 0.8
     , text
     , time                      >= 1.5
     , transformers
@@ -31,8 +32,10 @@ library
     Web.ServerSession.Backend.Redis.Internal
   extensions:
     DeriveDataTypeable
+    FlexibleContexts
     OverloadedStrings
     RecordWildCards
+    ScopedTypeVariables
     TypeFamilies
   ghc-options:     -Wall
 

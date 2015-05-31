@@ -22,15 +22,19 @@
 -- share [mkPersist sqlSettings, mkSave \"entityDefs\"]
 --
 -- -- On Application.hs
+-- import Data.Proxy (Proxy(..)) -- tagged package, or base from GHC 7.10 onwards
+-- import Web.ServerSession.Core (SessionMap)
 -- import Web.ServerSession.Backend.Persistent (serverSessionDefs)
 --
--- mkMigrate \"migrateAll\" (serverSessionDefs ++ entityDefs)
+-- mkMigrate \"migrateAll\" (serverSessionDefs (Proxy :: Proxy SessionMap) ++ entityDefs)
 --
 -- makeFoundation =
 --     ...
 --     runLoggingT (runSqlPool (runMigration migrateAll) pool) logFunc
 --     ...
 -- @
+--
+-- If you're not using @SessionMap@, just change @Proxy@ type above.
 --
 -- If you forget to setup the migration above, this session
 -- storage backend will fail at runtime as the required table

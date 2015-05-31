@@ -17,6 +17,7 @@ module Web.ServerSession.Frontend.Wai
     -- * Flexible interface
   , sessionStore
   , createCookieTemplate
+  , KeyValue(..)
     -- * State configuration
   , setCookieName
   , setAuthKey

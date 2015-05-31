@@ -3,6 +3,7 @@ module Web.ServerSession.Frontend.Snap
   ( -- * Using server-side sessions
     initServerSessionManager
   , simpleServerSessionManager
+  , SnapSession(..)
     -- * Invalidating session IDs
   , forceInvalidate
   , ForceInvalidate(..)

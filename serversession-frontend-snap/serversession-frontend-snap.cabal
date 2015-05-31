@@ -32,7 +32,10 @@ library
     Web.ServerSession.Frontend.Snap
     Web.ServerSession.Frontend.Snap.Internal
   extensions:
+    FlexibleContexts
     OverloadedStrings
+    TypeFamilies
+    UndecidableInstances
   ghc-options:     -Wall
 
 source-repository head
