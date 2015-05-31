@@ -15,6 +15,7 @@ module Web.ServerSession.Backend.Persistent.Internal.Impl
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
+import Data.Monoid (mempty)
 import Data.Proxy (Proxy(..))
 import Data.Time (UTCTime)
 import Data.Typeable (Typeable)

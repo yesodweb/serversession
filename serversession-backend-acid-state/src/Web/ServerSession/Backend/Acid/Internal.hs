@@ -259,11 +259,11 @@ instance ( SS.IsSessionData sess
 -- makeAcidic can't handle type variables, so we have to do
 -- everything by hand. :(
 
-data GetSession sess = GetSession (SS.SessionId sess)
-data DeleteSession sess = DeleteSession (SS.SessionId sess)
-data DeleteAllSessionsOfAuthId sess = DeleteAllSessionsOfAuthId SS.AuthId
-data InsertSession sess = InsertSession (SS.Session sess)
-data ReplaceSession sess = ReplaceSession (SS.Session sess)
+data GetSession sess = GetSession (SS.SessionId sess) deriving (Typeable)
+data DeleteSession sess = DeleteSession (SS.SessionId sess) deriving (Typeable)
+data DeleteAllSessionsOfAuthId sess = DeleteAllSessionsOfAuthId SS.AuthId deriving (Typeable)
+data InsertSession sess = InsertSession (SS.Session sess) deriving (Typeable)
+data ReplaceSession sess = ReplaceSession (SS.Session sess) deriving (Typeable)
 
 instance SafeCopy (GetSession sess) where
   putCopy (GetSession v) = contain $ safePut v
