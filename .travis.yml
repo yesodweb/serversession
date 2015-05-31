@@ -4,6 +4,9 @@
 
 # NB: don't set `language: haskell` here
 
+services:
+ - redis-server
+
 # The following enables several GHC versions to be tested; often it's enough to test only against the last release in a major GHC version. Feel free to omit lines listings versions you don't need/want testing for.
 env:
  #- CABALVER=1.16 GHCVER=6.12.3
@@ -39,6 +42,11 @@ install:
  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
  - travis_retry cabal update
  - cabal install cabal-src cabal-meta alex happy
+
+before_script:
+ - psql -c "CREATE USER test WITH PASSWORD 'test';" -U postgres
+ - psql -c "CREATE DATABASE test;" -U postgres
+ - psql -c "GRANT ALL PRIVILEGES ON DATABASE test TO test;" -U postgres
 
 # Here starts the actual work to be performed for the package under test; any command which exits with a non-zero exit code causes the build to fail.
 script:
