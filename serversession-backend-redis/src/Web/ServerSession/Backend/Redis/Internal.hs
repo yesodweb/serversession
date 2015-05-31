@@ -232,18 +232,18 @@ deleteSessionImpl sid = do
 
 -- | Remove the given 'SessionId' from the set of sessions of the
 -- given 'AuthId'.  Does not do anything if @Nothing@.
-removeSessionFromAuthId :: R.RedisCtx m f => SessionId sess -> Maybe AuthId -> m ()
+removeSessionFromAuthId :: (R.RedisCtx m f, Functor m) => SessionId sess -> Maybe AuthId -> m ()
 removeSessionFromAuthId = fooSessionBarAuthId R.srem
 
 -- | Insert the given 'SessionId' into the set of sessions of the
 -- given 'AuthId'.  Does not do anything if @Nothing@.
-insertSessionForAuthId :: R.RedisCtx m f => SessionId sess -> Maybe AuthId -> m ()
+insertSessionForAuthId :: (R.RedisCtx m f, Functor m) => SessionId sess -> Maybe AuthId -> m ()
 insertSessionForAuthId = fooSessionBarAuthId R.sadd
 
 
 -- | (Internal) Helper for 'removeSessionFromAuthId' and 'insertSessionForAuthId'
 fooSessionBarAuthId
-  :: R.RedisCtx m f
+  :: (R.RedisCtx m f, Functor m)
   => (ByteString -> [ByteString] -> m (f Integer))
   -> SessionId sess
   -> Maybe AuthId
