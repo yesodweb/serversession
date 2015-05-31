@@ -15,38 +15,40 @@ companion packages:
   * _Backend (storage)_, in order to store the session data.
     Currently we support:
 
-    * [![Hackage](https://img.shields.io/hackage/v/serversession-backend-persistent.svg)](https://hackage.haskell.org/package/serversession-backend-persistent)
-      `serversession-backend-persistent`: Storage backend using
-      `persistent`'s SQL backend.  Works with PostgreSQL, MySQL,
-      SQLite.
+    * `serversession-backend-persistent`
+      ([![Hackage](https://img.shields.io/hackage/v/serversession-backend-persistent.svg)](https://hackage.haskell.org/package/serversession-backend-persistent)):
+      Storage backend using `persistent`'s SQL backend.  Works
+      with PostgreSQL, MySQL, SQLite.
 
-    * [![Hackage](https://img.shields.io/hackage/v/serversession-backend-acid-state.svg)](https://hackage.haskell.org/package/serversession-backend-acid-state)
-      `serversession-backend-acid-state`: Storage backend using
-      `acid-state`.  This backend keeps sessions in memory but
-      provides ACID guarantees using a transaction log.  It can
-      also be used without durability as a memory-only backend.
+    * `serversession-backend-acid-state`
+      ([![Hackage](https://img.shields.io/hackage/v/serversession-backend-acid-state.svg)](https://hackage.haskell.org/package/serversession-backend-acid-state)):
+      Storage backend using `acid-state`.  This backend keeps
+      sessions in memory but provides ACID guarantees using a
+      transaction log.  It can also be used without durability as
+      a memory-only backend.
 
-    * [![Hackage](https://img.shields.io/hackage/v/serversession-backend-redis.svg)](https://hackage.haskell.org/package/serversession-backend-redis)
-      `serversession-backend-redis`: Storage backend using
-      Redis via the `hedis` package.
+    * `serversession-backend-redis`
+      ([![Hackage](https://img.shields.io/hackage/v/serversession-backend-redis.svg)](https://hackage.haskell.org/package/serversession-backend-redis)):
+      Storage backend using Redis via the `hedis` package.
 
   * _Frontend_, bindings for your web framework of choice.
     Currently we support:
 
-    * [![Hackage](https://img.shields.io/hackage/v/serversession-frontend-yesod.svg)](https://hackage.haskell.org/package/serversession-frontend-yesod)
-      `serversession-frontend-yesod`: Support for the Yesod
-      framework.  Replaces the default `clientsession`.
+    * `serversession-frontend-yesod`
+      ([![Hackage](https://img.shields.io/hackage/v/serversession-frontend-yesod.svg)](https://hackage.haskell.org/package/serversession-frontend-yesod)):
+      Support for the Yesod framework.  Replaces the default
+      `clientsession`.
 
-    * [![Hackage](https://img.shields.io/hackage/v/serversession-frontend-snap.svg)](https://hackage.haskell.org/package/serversession-frontend-snap)
-      `serversession-frontend-snap`: Support for the Snap
-      framework.  Replaces the default
+    * `serversession-frontend-snap`
+      ([![Hackage](https://img.shields.io/hackage/v/serversession-frontend-snap.svg)](https://hackage.haskell.org/package/serversession-frontend-snap)):
+      Support for the Snap framework.  Replaces the default
       `Snap.Snaplet.Session.Backends.CookieSession` based on
       `clientsession`.
 
-    * [![Hackage](https://img.shields.io/hackage/v/serversession-frontend-wai.svg)](https://hackage.haskell.org/package/serversession-frontend-wai)
-      `serversession-frontend-wai`: Generic support for WAI
-      applications via the `wai-session` package by using a
-      `vault`.
+    * `serversession-frontend-wai`
+      ([![Hackage](https://img.shields.io/hackage/v/serversession-frontend-wai.svg)](https://hackage.haskell.org/package/serversession-frontend-wai)):
+      Generic support for WAI applications via the `wai-session`
+      package by using a `vault`.
 
 If your favorite storage backend or framework is not listed
 above, please send us a pull request!  The `serversession`
