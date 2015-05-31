@@ -36,7 +36,7 @@ import qualified Web.Cookie as C
 -- that uses 'WS.withSession', 'createState', 'sessionStore',
 -- 'getCookieName' and 'createCookieTemplate'.
 withServerSession
-  :: (MonadIO m, MonadIO n, Storage sto, SessionData sto ~ SessionMap)
+  :: (Functor m, MonadIO m, MonadIO n, Storage sto, SessionData sto ~ SessionMap)
   => V.Key (WS.Session m Text ByteString) -- ^ 'V.Vault' key to use when passing the session through.
   -> (State sto -> State sto)             -- ^ Set any options on the @serversession@ state.
   -> sto                                  -- ^ Storage backend.
@@ -58,7 +58,7 @@ withServerSession key opts storage = liftIO $ do
 -- return an empty @ByteString@ when the empty session was not
 -- saved.
 sessionStore
-  :: (MonadIO m, Storage sto, KeyValue (SessionData sto))
+  :: (Functor m, MonadIO m, Storage sto, KeyValue (SessionData sto))
   => State sto -- ^ @serversession@ state, incl. storage backend.
   -> WS.SessionStore m (Key (SessionData sto)) (Value (SessionData sto))
      -- ^ @wai-session@ session store.
@@ -75,7 +75,7 @@ sessionStore state =
 
 -- | Build a 'WS.Session' from an 'I.IORef' containing the
 -- session data.
-mkSession :: (MonadIO m, KeyValue sess) => I.IORef sess -> WS.Session m (Key sess) (Value sess)
+mkSession :: (Functor m, MonadIO m, KeyValue sess) => I.IORef sess -> WS.Session m (Key sess) (Value sess)
 mkSession sessionRef =
   -- We need to use atomicModifyIORef instead of readIORef
   -- because latter may be reordered (cf. "Memory Model" on

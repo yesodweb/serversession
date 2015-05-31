@@ -32,6 +32,7 @@ library
     Web.ServerSession.Frontend.Snap
     Web.ServerSession.Frontend.Snap.Internal
   extensions:
+    DeriveDataTypeable
     FlexibleContexts
     OverloadedStrings
     TypeFamilies

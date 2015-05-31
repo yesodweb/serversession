@@ -26,7 +26,7 @@ module Web.ServerSession.Backend.Redis.Internal
   , throwRS
   ) where
 
-import Control.Applicative ((<$))
+import Control.Applicative ((<$), (<$>))
 import Control.Arrow (first)
 import Control.Monad (void, when)
 import Control.Monad.IO.Class (liftIO)
