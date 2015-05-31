@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Control.Applicative ((<$>))
 import Data.Acid.Local (openLocalState, createCheckpointAndClose)
 import Data.Acid.Memory (openMemoryState)
 import Test.Hspec

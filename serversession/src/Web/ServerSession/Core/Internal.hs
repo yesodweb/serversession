@@ -45,6 +45,7 @@ module Web.ServerSession.Core.Internal
   , ForceInvalidate(..)
   ) where
 
+import Control.Applicative ((<$>), (<*>))
 import Control.Monad (guard, when)
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.ByteString (ByteString)

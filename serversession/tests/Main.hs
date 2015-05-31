@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Control.Applicative ((<$>), (<*>))
 import Control.Arrow
 import Control.Monad
 import Data.Maybe

@@ -12,6 +12,7 @@ module Web.ServerSession.Backend.Persistent.Internal.Types
     -- $orphanSessionMap
   ) where
 
+import Control.Applicative ((<$>))
 import Control.Arrow (first)
 import Control.Monad ((>=>), mzero)
 import Data.ByteString (ByteString)

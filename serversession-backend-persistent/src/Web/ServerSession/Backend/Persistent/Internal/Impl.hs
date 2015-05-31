@@ -12,6 +12,7 @@ module Web.ServerSession.Backend.Persistent.Internal.Impl
   , throwSS
   ) where
 
+import Control.Applicative ((<$>), (<*>))
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 import Data.Proxy (Proxy(..))

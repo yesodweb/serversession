@@ -24,6 +24,7 @@ module Web.ServerSession.Backend.Acid.Internal
   , AcidStorage(..)
   ) where
 
+import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Reader (ask)
 import Control.Monad.State (get, modify', put)
 import Data.Acid

@@ -7,6 +7,7 @@ module Web.ServerSession.Core.StorageTests
   ( allStorageTests
   ) where
 
+import Control.Applicative ((<$>), (<*>))
 import Control.Exception (Exception)
 import Control.Monad
 import Web.ServerSession.Core.Internal

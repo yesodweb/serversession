@@ -10,6 +10,7 @@ module Web.ServerSession.Frontend.Wai.Internal
   , forceInvalidate
   ) where
 
+import Control.Applicative ((<$>))
 import Control.Monad (guard)
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.ByteString (ByteString)

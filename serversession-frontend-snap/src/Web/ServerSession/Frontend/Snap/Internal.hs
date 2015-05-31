@@ -12,6 +12,7 @@ module Web.ServerSession.Frontend.Snap.Internal
   , forceInvalidate
   ) where
 
+import Control.Applicative ((<$>))
 import Control.Arrow (first, second)
 import Control.Monad.IO.Class (liftIO)
 import Data.ByteString (ByteString)
