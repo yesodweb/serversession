@@ -107,6 +107,29 @@ We provide the following storage optimizations:
     timeout resolution is set to 10 minutes.
 
 
+## Session data types
+
+The `serversession` family is generalized with respect to the
+session data type.  We provide `SessionMap`, a `newtype` of `Map
+Text ByteString`, that is guaranteed to work with every backend
+and frontend.  However, you're able to create a custom data type
+and use it as well, as long as you implement the typeclasses
+needed by your backend and frontend.
+
+The storage backends support basically anything they're able to
+serialize.  The `persistent` backend accepts anything that can be
+used as a `persistent` field.  The `acid-state` backend accepts
+anything that can be serialized via `SafeCopy`.  The `redis`
+backend accepts anything that can be stored as a Redis hash.
+
+The frontends unfortunately are quite more limited.  Yesod
+insists that sessions be `Map`s of `Text` to `ByteString`, while
+Snap insists on `Map`s of `Text` to `Text`.  The `wai-session`
+package allows any types of keys and values, but still expect a
+map.  Until the frameworks get generalized as well, it's a bit
+difficult to take advantage of custom session data types.
+
+
 ## Current limitations
 
 These limitations may be addressed in the future.  Right now,
