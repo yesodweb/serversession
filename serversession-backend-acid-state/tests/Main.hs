@@ -22,5 +22,6 @@ main =
 #if MIN_VERSION_base(4,8,0)
         allStorageTests acidLocal it runIO parallel shouldBe shouldReturn shouldThrow
 #else
-        pendingWith "disabled on GHC < 7.10.1, cf. <https://github.com/acid-state/acid-state/issues/55>."
+        it "is not tested on GHC < 7.10.1" $ do
+          pendingWith "<https://github.com/acid-state/acid-state/issues/55>"
 #endif
