@@ -7,7 +7,6 @@ module Web.ServerSession.Backend.Acid.Internal
   , emptyState
   , removeSessionFromAuthId
   , insertSessionForAuthId
-  , nothingfy
 
   , getSession
   , deleteSession
@@ -34,7 +33,6 @@ import Data.Typeable (Typeable)
 
 import qualified Control.Exception as E
 import qualified Data.HashMap.Strict as HM
-import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import qualified Web.ServerSession.Core as SS
 import qualified Web.ServerSession.Core.Internal as SSI
@@ -45,13 +43,13 @@ import qualified Web.ServerSession.Core.Internal as SSI
 
 -- | Map from session IDs to sessions.  The most important map,
 -- allowing us efficient access to a session given its ID.
-type SessionIdToSession sess = M.Map (SS.SessionId sess) (SS.Session sess)
+type SessionIdToSession sess = HM.HashMap (SS.SessionId sess) (SS.Session sess)
 
 
 -- | Map from auth IDs to session IDs.  Allow us to invalidate
 -- all sessions of given user without having to iterate through
 -- the whole 'SessionIdToSession' map.
-type AuthIdToSessionId sess = M.Map SS.AuthId (S.Set (SS.SessionId sess))
+type AuthIdToSessionId sess = HM.HashMap SS.AuthId (S.Set (SS.SessionId sess))
 
 
 -- | The current sessions.
@@ -68,7 +66,7 @@ data ServerSessionAcidState sess =
 
 -- | Empty 'ServerSessionAcidState' used to bootstrap the 'AcidState'.
 emptyState :: ServerSessionAcidState sess
-emptyState = ServerSessionAcidState M.empty M.empty
+emptyState = ServerSessionAcidState HM.empty HM.empty
 
 
 -- | Remove the given 'SessionId' from the set of the given
@@ -79,7 +77,12 @@ removeSessionFromAuthId
   -> Maybe SS.AuthId
   -> AuthIdToSessionId sess
   -> AuthIdToSessionId sess
-removeSessionFromAuthId sid = maybe id (M.update (nothingfy . S.delete sid))
+removeSessionFromAuthId sid = maybe id removeIt
+  where
+    removeIt authId aits
+      | S.null newSet = HM.delete authId aits
+      | otherwise     = HM.insert authId newSet aits
+      where newSet = maybe S.empty (S.delete sid) (HM.lookup authId aits)
 
 
 -- | Insert the given session ID as being part of the given auth
@@ -90,12 +93,7 @@ insertSessionForAuthId
   -> Maybe SS.AuthId
   -> AuthIdToSessionId sess
   -> AuthIdToSessionId sess
-insertSessionForAuthId sid = maybe id (flip (M.insertWith S.union) (S.singleton sid))
-
-
--- | Change a 'S.Set' to 'Nothing' if it's 'S.null'.
-nothingfy :: S.Set a -> Maybe (S.Set a)
-nothingfy s = if S.null s then Nothing else Just s
+insertSessionForAuthId sid = maybe id (flip (HM.insertWith S.union) (S.singleton sid))
 
 
 ----------------------------------------------------------------------
@@ -139,9 +137,12 @@ instance SafeCopy (SS.Decomposed sess) => SafeCopy (SS.Session sess) where
 -- to the required context.
 instance SafeCopy (SS.Decomposed sess) => SafeCopy (ServerSessionAcidState sess) where
   putCopy (ServerSessionAcidState sits aits) = contain $ do
-    safePut sits
-    safePut aits
-  getCopy = contain $ ServerSessionAcidState <$> safeGet <*> safeGet
+    safePut (HM.toList sits)
+    safePut (HM.toList aits)
+  getCopy = contain $
+    ServerSessionAcidState
+      <$> (HM.fromList <$> safeGet)
+      <*> (HM.fromList <$> safeGet)
 
 
 ----------------------------------------------------------------------
@@ -152,7 +153,7 @@ getSession
   :: SS.Storage (AcidStorage sess)
   => SS.SessionId sess
   -> Query (ServerSessionAcidState sess) (Maybe (SS.Session sess))
-getSession sid = M.lookup sid . sessionIdToSession <$> ask
+getSession sid = HM.lookup sid . sessionIdToSession <$> ask
 
 
 -- | Delete the session with given session ID.
@@ -160,11 +161,11 @@ deleteSession
   :: SS.Storage (AcidStorage sess)
   => SS.SessionId sess
   -> Update (ServerSessionAcidState sess) ()
-deleteSession sid = do
-  let removeSession = M.updateLookupWithKey (\_ _ -> Nothing) sid
+deleteSession sid =
   modify' $ \state ->
-    let (oldSession, newSessionIdToSession) = removeSession $ sessionIdToSession state
-        newAuthIdToSessionId = removeSessionFromAuthId sid mauthId $ authIdToSessionId state
+    let oldSession            = HM.lookup sid (sessionIdToSession state)
+        newSessionIdToSession = HM.delete sid (sessionIdToSession state)
+        newAuthIdToSessionId  = removeSessionFromAuthId sid mauthId $ authIdToSessionId state
           where mauthId = oldSession >>= SS.sessionAuthId
     in ServerSessionAcidState newSessionIdToSession newAuthIdToSessionId
 
@@ -174,12 +175,12 @@ deleteAllSessionsOfAuthId
   :: SS.Storage (AcidStorage sess)
   => SS.AuthId
   -> Update (ServerSessionAcidState sess) ()
-deleteAllSessionsOfAuthId authId = do
-  let removeSession = maybe id (flip M.difference . M.fromSet (const ()))
-      removeAuth    = M.updateLookupWithKey (\_ _ -> Nothing) authId
+deleteAllSessionsOfAuthId authId =
   modify' $ \state ->
-    let (sessionIds, newAuthIdToSessionId) = removeAuth $ authIdToSessionId state
-        newSessionIdToSession = removeSession sessionIds $ sessionIdToSession state
+    let sessionIds            = HM.lookup authId (authIdToSessionId state)
+        newAuthIdToSessionId  = HM.delete authId (authIdToSessionId state)
+        newSessionIdToSession = maybe id removeSession sessionIds $ sessionIdToSession state
+          where removeSession = flip HM.difference . HM.fromList . map (flip (,) ()) . S.toList
     in ServerSessionAcidState newSessionIdToSession newAuthIdToSessionId
 
 
@@ -189,9 +190,10 @@ insertSession
   => SS.Session sess
   -> Update (ServerSessionAcidState sess) ()
 insertSession session = do
-  let insertSess s =
-        let (mold, new) = M.insertLookupWithKey (\_ v _ -> v) sid session s
-        in maybe new (\old -> throwAS $ SS.SessionAlreadyExists old session) mold
+  let insertSess sits =
+        case HM.lookup sid sits of
+          Nothing  -> HM.insert sid session sits
+          Just old -> throwAS $ SS.SessionAlreadyExists old session
       insertAuth = insertSessionForAuthId sid (SS.sessionAuthId session)
       sid        = SS.sessionKey session
   modify' $ \state ->
@@ -208,9 +210,8 @@ replaceSession
 replaceSession session = do
   -- Check that the old session exists while replacing it.
   ServerSessionAcidState sits aits <- get
-  let (moldSession, sits') = M.insertLookupWithKey (\_ v _ -> v) sid session sits
-      sid = SS.sessionKey session
-  case moldSession of
+  let sid = SS.sessionKey session
+  case HM.lookup sid sits of
     Nothing -> throwAS $ SS.SessionDoesNotExist session
     Just oldSession -> do
       -- Remove/insert the old auth ID from the map if needed.
@@ -220,6 +221,7 @@ replaceSession session = do
             where oldAuthId = SS.sessionAuthId oldSession
                   newAuthId = SS.sessionAuthId session
           aits' = modAits aits
+          sits' = HM.insert sid session sits
       -- Put modified state in place
       put (ServerSessionAcidState sits' aits')
 
