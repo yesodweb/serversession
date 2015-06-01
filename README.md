@@ -5,7 +5,8 @@ Secure, modular server-side sessions.
 This repo contains many packages that together implement
 traditional server-side sessions.  Users who don't have a session
 yet are assigned a random 144-bit session ID that is the key on a
-storage backend.  All session data is saved on the storage backend.
+storage backend.  All session data is saved on a storage
+backend.  Includes 110+ unit and property tests.
 
 The `serversession` package
 ([![Hackage](https://img.shields.io/hackage/v/serversession.svg)](https://hackage.haskell.org/package/serversession))
