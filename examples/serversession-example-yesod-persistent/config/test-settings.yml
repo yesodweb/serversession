@@ -1,0 +1,2 @@
+database:
+  database: serversession-example-yesod-persistent_test.sqlite3

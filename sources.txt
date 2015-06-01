@@ -5,6 +5,7 @@
 ./serversession-frontend-snap
 ./serversession-frontend-wai
 ./serversession-frontend-yesod
+./examples
 
 -- <https://github.com/singpolyma/wai-session/pull/7>
 https://github.com/meteficha/wai-session
