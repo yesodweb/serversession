@@ -56,5 +56,8 @@ script:
  - cabal-meta install --enable-tests --enable-benchmarks --force-reinstalls
  - serversession/dist/build/tests/tests
  - serversession-backend-acid-state/dist/build/tests/tests
+ - du -hcs state; rm -Rfv state
  - serversession-backend-persistent/dist/build/tests/tests
+ - du -hcs test.db*; rm -Rfv test.db*
+ - psql -c 'SELECT COUNT(*) FROM "persistent_session";' -U test test; psql -c 'DROP DATABASE test;' -U postgres
  - serversession-backend-redis/dist/build/tests/tests
