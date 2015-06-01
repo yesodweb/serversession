@@ -21,8 +21,8 @@ import Web.ServerSession.Core
 import Web.ServerSession.Core.Internal (absoluteTimeout, idleTimeout, persistentCookies)
 
 import qualified Data.ByteString.Char8 as B8
+import qualified Data.HashMap.Strict as HM
 import qualified Data.IORef as I
-import qualified Data.Map as M
 import qualified Data.Text.Encoding as TE
 import qualified Data.Time as TI
 import qualified Data.Vault.Lazy as V
@@ -100,8 +100,8 @@ class IsSessionData sess => KeyValue sess where
 instance KeyValue SessionMap where
   type Key   SessionMap = Text
   type Value SessionMap = ByteString
-  kvLookup k = M.lookup k . unSessionMap
-  kvInsert k v (SessionMap m) = SessionMap (M.insert k v m)
+  kvLookup k = HM.lookup k . unSessionMap
+  kvInsert k v (SessionMap m) = SessionMap (HM.insert k v m)
 
 
 ----------------------------------------------------------------------

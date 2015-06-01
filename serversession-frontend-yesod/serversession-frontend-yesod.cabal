@@ -25,6 +25,7 @@ library
     , text
     , time
     , transformers
+    , unordered-containers
     , wai
     , yesod-core                == 1.4.*
 

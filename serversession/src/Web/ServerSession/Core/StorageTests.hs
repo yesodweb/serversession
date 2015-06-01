@@ -14,7 +14,7 @@ import Web.ServerSession.Core.Internal
 
 import qualified Crypto.Nonce as N
 import qualified Data.ByteString as B
-import qualified Data.Map as M
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 import qualified Data.Time as TI
 
@@ -172,11 +172,11 @@ allStorageTests storage it runIO parallel _shouldBe shouldReturn shouldThrow = d
         let session = Session
               { sessionKey        = sid
               , sessionAuthId     = Nothing
-              , sessionData       = SessionMap $ M.fromList vals
+              , sessionData       = SessionMap $ HM.fromList vals
               , sessionCreatedAt  = now
               , sessionAccessedAt = now
               }
-            ver2 = session { sessionData = SessionMap M.empty }
+            ver2 = session { sessionData = SessionMap HM.empty }
         run (getSession storage sid) `shouldReturn` Nothing
         run (insertSession storage session)
         run (getSession storage sid) `shouldReturn` (Just session)
@@ -217,7 +217,7 @@ generateSession gen hasAuthId = do
   data_ <- do
     keys <- replicateM 20 (N.nonce128urlT gen)
     vals <- replicateM 20 (N.nonce128url  gen)
-    return $ M.fromList (zip keys vals)
+    return $ HM.fromList (zip keys vals)
   now <- TI.getCurrentTime
   return Session
     { sessionKey        = sid

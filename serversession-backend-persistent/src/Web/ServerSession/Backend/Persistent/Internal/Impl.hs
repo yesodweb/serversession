@@ -25,7 +25,6 @@ import Web.ServerSession.Core
 
 import qualified Control.Exception as E
 import qualified Data.Aeson as A
-import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Database.Persist as P
 import qualified Database.Persist.Sql as P
@@ -95,7 +94,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
         []
         []
         ["Eq", "Ord", "Show", "Typeable"]
-        M.empty
+        mempty
         False
     where
       pfd :: P.EntityField (PersistentSession sess) typ -> P.FieldDef

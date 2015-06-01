@@ -25,7 +25,7 @@ import Web.ServerSession.Core.Internal (SessionId(..))
 
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Base64.URL as B64URL
-import qualified Data.Map as M
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Serialize as S
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
@@ -102,17 +102,17 @@ instance PersistFieldSql SessionMap where
   sqlType _ = SqlBlob
 
 instance S.Serialize SessionMap where
-  put = S.put . map (first TE.encodeUtf8) . M.toAscList . unSessionMap
-  get = SessionMap . M.fromAscList . map (first TE.decodeUtf8) <$> S.get
+  put = S.put . map (first TE.encodeUtf8) . HM.toList . unSessionMap
+  get = SessionMap . HM.fromList . map (first TE.decodeUtf8) <$> S.get
 
 instance A.FromJSON SessionMap where
   parseJSON = fmap fixup . A.parseJSON
     where
-      fixup :: M.Map Text ByteStringJ -> SessionMap
+      fixup :: HM.HashMap Text ByteStringJ -> SessionMap
       fixup = SessionMap . fmap unB
 
 instance A.ToJSON SessionMap where
   toJSON = A.toJSON . mangle
     where
-      mangle :: SessionMap -> M.Map Text ByteStringJ
+      mangle :: SessionMap -> HM.HashMap Text ByteStringJ
       mangle = fmap B . unSessionMap

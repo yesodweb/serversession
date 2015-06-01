@@ -18,7 +18,6 @@ library
   build-depends:
       base                      == 4.*
     , bytestring
-    , containers
     , nonce
     , path-pieces
     , snap                      == 0.14.*
@@ -26,6 +25,7 @@ library
     , text
     , time
     , transformers
+    , unordered-containers
 
     , serversession             == 1.0.*
   exposed-modules:

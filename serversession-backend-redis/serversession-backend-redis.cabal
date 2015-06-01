@@ -18,13 +18,13 @@ library
   build-depends:
       base                      == 4.*
     , bytestring
-    , containers
     , hedis                     == 0.6.*
     , path-pieces
     , tagged                    >= 0.8
     , text
     , time                      >= 1.5
     , transformers
+    , unordered-containers
 
     , serversession             == 1.0.*
   exposed-modules:
@@ -44,8 +44,8 @@ test-suite tests
   type: exitcode-stdio-1.0
   hs-source-dirs:  tests
   build-depends:
-      base, bytestring, containers, hedis, path-pieces, text,
-      time, transformers
+      base, bytestring, hedis, path-pieces, text,
+      time, transformers, unordered-containers
 
     , hspec                     >= 2.1 && < 3
 

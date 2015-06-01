@@ -18,13 +18,13 @@ library
   build-depends:
       base                      >= 4.6   && < 5
     , bytestring
-    , containers
     , cookie                    >= 0.4
     , data-default
     , path-pieces
     , text
     , time
     , transformers
+    , unordered-containers
     , vault
     , wai
     , wai-session               == 0.3.*

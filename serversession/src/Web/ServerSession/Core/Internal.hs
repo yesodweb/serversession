@@ -49,6 +49,7 @@ import Control.Applicative ((<$>), (<*>))
 import Control.Monad (guard, when)
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.ByteString (ByteString)
+import Data.Hashable (Hashable(..))
 import Data.Maybe (catMaybes, fromMaybe, isJust)
 import Data.Text (Text)
 import Data.Time (UTCTime, getCurrentTime)
@@ -61,7 +62,7 @@ import qualified Crypto.Nonce as N
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Base64.URL as B64URL
 import qualified Data.ByteString.Char8 as B8
-import qualified Data.Map as M
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 
@@ -92,6 +93,9 @@ instance A.FromJSON (SessionId sess) where
 
 instance A.ToJSON (SessionId sess) where
   toJSON = A.toJSON . unS
+
+instance Hashable (SessionId sess) where
+  hashWithSalt s = hashWithSalt s . unS
 
 
 -- | (Internal) Check that the given text is a base64url-encoded
@@ -150,8 +154,8 @@ deriving instance Show (Decomposed sess) => Show (Session sess)
 -- to support this session data type on all frontends and storage
 -- backends.
 newtype SessionMap =
-  SessionMap { unSessionMap :: M.Map Text ByteString }
-  deriving (Eq, Ord, Show, Read, Typeable)
+  SessionMap { unSessionMap :: HM.HashMap Text ByteString }
+  deriving (Eq, Show, Read, Typeable)
 
 
 ----------------------------------------------------------------------
@@ -224,22 +228,25 @@ class ( Show (Decomposed sess)
 instance IsSessionData SessionMap where
   type Decomposed SessionMap = SessionMap
 
-  emptySession = SessionMap M.empty
+  emptySession = SessionMap HM.empty
 
   isSameDecomposed _ = (==)
 
   decomposeSession authKey_ (SessionMap sm1) =
-    let (authId, sm2) = M.updateLookupWithKey (\_ _ -> Nothing) authKey_           sm1
-        (force,  sm3) = M.updateLookupWithKey (\_ _ -> Nothing) forceInvalidateKey sm2
+    let authId = HM.lookup authKey_ sm1
+        force  = maybe DoNotForceInvalidate (read . B8.unpack) $
+                 HM.lookup forceInvalidateKey sm1
+        sm2    = HM.delete authKey_ $
+                 HM.delete forceInvalidateKey sm1
     in DecomposedSession
          { dsAuthId          = authId
-         , dsForceInvalidate = maybe DoNotForceInvalidate (read . B8.unpack) force
-         , dsDecomposed      = SessionMap sm3 }
+         , dsForceInvalidate = force
+         , dsDecomposed      = SessionMap sm2 }
 
   recomposeSession authKey_ mauthId (SessionMap sm) =
-    SessionMap $ maybe id (M.insert authKey_) mauthId sm
+    SessionMap $ maybe id (HM.insert authKey_) mauthId sm
 
-  isDecomposedEmpty _ = M.null . unSessionMap
+  isDecomposedEmpty _ = HM.null . unSessionMap
 
 
 -- | A session data type @sess@ with its special variables taken apart.

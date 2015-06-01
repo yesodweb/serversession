@@ -21,6 +21,7 @@ library
     , containers
     , mtl
     , safecopy                  == 0.8.*
+    , unordered-containers
 
     , serversession             == 1.0.*
   exposed-modules:
@@ -40,7 +41,7 @@ test-suite tests
   type: exitcode-stdio-1.0
   hs-source-dirs:  tests
   build-depends:
-      base, acid-state, containers, mtl, safecopy
+      base, acid-state, containers, mtl, safecopy, unordered-containers
 
     , hspec                     >= 2.1 && < 3
 

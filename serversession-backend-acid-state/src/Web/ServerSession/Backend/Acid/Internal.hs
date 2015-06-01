@@ -33,6 +33,7 @@ import Data.SafeCopy
 import Data.Typeable (Typeable)
 
 import qualified Control.Exception as E
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import qualified Web.ServerSession.Core as SS
@@ -100,7 +101,11 @@ nothingfy s = if S.null s then Nothing else Just s
 ----------------------------------------------------------------------
 
 
-deriveSafeCopy 0 'base ''SS.SessionMap
+-- | We can't @deriveSafeCopy 0 'base ''SS.SessionMap@ because
+-- @safeCopy@ doesn't contain instances for @HashMap@ as of now.
+instance SafeCopy SS.SessionMap where
+  putCopy = contain . safePut . HM.toList . SS.unSessionMap
+  getCopy = contain $ SS.SessionMap . HM.fromList <$> safeGet
 
 
 -- | We can't @deriveSafeCopy 0 'base ''SS.SessionId@ as

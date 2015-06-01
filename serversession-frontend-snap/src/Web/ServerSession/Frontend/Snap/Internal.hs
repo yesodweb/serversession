@@ -24,10 +24,10 @@ import Web.ServerSession.Core
 
 import qualified Crypto.Nonce as N
 import qualified Data.ByteString.Char8 as B8
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Time as TI
-import qualified Data.Map as M
 import qualified Snap.Core as S
 import qualified Snap.Snaplet as S
 import qualified Snap.Snaplet.Session as S
@@ -84,27 +84,27 @@ class IsSessionData sess => SnapSession sess where
 
 -- | Uses 'csrfKey'.
 instance SnapSession SessionMap where
-  ssInsert key val = onSM (M.insert key (TE.encodeUtf8 val))
-  ssLookup key     = fmap TE.decodeUtf8 . M.lookup key . unSessionMap
-  ssDelete key     = onSM (M.delete key)
+  ssInsert key val = onSM (HM.insert key (TE.encodeUtf8 val))
+  ssLookup key     = fmap TE.decodeUtf8 . HM.lookup key . unSessionMap
+  ssDelete key     = onSM (HM.delete key)
   ssToList =
     -- Remove the CSRF key from the list as the current
     -- clientsession backend doesn't return it.
     fmap (second TE.decodeUtf8) .
-    M.toList .
-    M.delete csrfKey .
+    HM.toList .
+    HM.delete csrfKey .
     unSessionMap
 
   ssInsertCsrf = ssInsert csrfKey
   ssLookupCsrf = ssLookup csrfKey
 
-  ssForceInvalidate force = onSM (M.insert forceInvalidateKey (B8.pack $ show force))
+  ssForceInvalidate force = onSM (HM.insert forceInvalidateKey (B8.pack $ show force))
 
 
 -- | Apply a function to a 'SessionMap'.
 onSM
-  :: (M.Map Text ByteString -> M.Map Text ByteString)
-  -> (SessionMap            -> SessionMap)
+  :: (HM.HashMap Text ByteString -> HM.HashMap Text ByteString)
+  -> (SessionMap                 -> SessionMap)
 onSM f = SessionMap . f . unSessionMap
 
 

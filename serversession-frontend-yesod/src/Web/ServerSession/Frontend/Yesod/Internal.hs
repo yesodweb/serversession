@@ -21,6 +21,7 @@ import Yesod.Core.Handler (setSessionBS)
 import Yesod.Core.Types (Header(AddCookie), SessionBackend(..))
 
 import qualified Data.ByteString.Char8 as B8
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Map as M
 import qualified Data.Text.Encoding as TE
 import qualified Data.Time as TI
@@ -107,8 +108,8 @@ class IsSessionMap sess where
 
 
 instance IsSessionMap SessionMap where
-  toSessionMap   = unSessionMap
-  fromSessionMap =   SessionMap
+  toSessionMap   = M.fromList . HM.toList . unSessionMap
+  fromSessionMap = SessionMap . HM.fromList . M.toList
 
 
 ----------------------------------------------------------------------

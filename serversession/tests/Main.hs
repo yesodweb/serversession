@@ -14,8 +14,8 @@ import Web.ServerSession.Core.StorageTests
 import qualified Control.Exception as E
 import qualified Crypto.Nonce as N
 import qualified Data.ByteString.Char8 as B8
+import qualified Data.HashMap.Strict as HM
 import qualified Data.IORef as I
-import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Time as TI
@@ -128,7 +128,7 @@ main = hspec $ parallel $ do
       st  <- createState =<< prepareMockStorage [session]
       (retSessionMap, SaveSessionToken msession _now) <-
           loadSession st (Just $ B8.pack $ T.unpack $ unS $ sessionKey session)
-      retSessionMap `shouldBe` onSM (M.insert (authKey st) authId) (sessionData session)
+      retSessionMap `shouldBe` onSM (HM.insert (authKey st) authId) (sessionData session)
       msession      `shouldBe` Just session
 
   describe "checkExpired" $ do
@@ -224,22 +224,22 @@ main = hspec $ parallel $ do
       sessionData   session1 `shouldBe` m1
       getMockOperations sto `shouldReturn` [InsertSession session1]
 
-      let m2 = onSM (M.insert (authKey st) "john") m1
+      let m2 = onSM (HM.insert (authKey st) "john") m1
       Just session2 <- saveSession st (SaveSessionToken (Just session1) fakenow) m2
       sessionAuthId session2 `shouldBe` Just "john"
       sessionData   session2 `shouldBe` m1
       sessionKey session2 == sessionKey session1 `shouldBe` False
       getMockOperations sto `shouldReturn` [DeleteSession (sessionKey session1), InsertSession session2]
 
-      let m3 = onSM (M.insert forceInvalidateKey (B8.pack $ show AllSessionIdsOfLoggedUser)) m2
+      let m3 = onSM (HM.insert forceInvalidateKey (B8.pack $ show AllSessionIdsOfLoggedUser)) m2
       Just session3 <- saveSession st (SaveSessionToken (Just session2) fakenow) m3
       session3 `shouldBe` session2 { sessionKey = sessionKey session3 }
       getMockOperations sto `shouldReturn`
         [DeleteSession (sessionKey session2), DeleteAllSessionsOfAuthId "john", InsertSession session3]
 
-      let m4 = onSM (M.insert "x" "y") m2
+      let m4 = onSM (HM.insert "x" "y") m2
       Just session4 <- saveSession st (SaveSessionToken (Just session3) fakenow) m4
-      session4 `shouldBe` session3 { sessionData = onSM (M.delete (authKey st)) m4 }
+      session4 `shouldBe` session3 { sessionData = onSM (HM.delete (authKey st)) m4 }
       getMockOperations sto `shouldReturn` [ReplaceSession session4]
 
       Just session5 <- saveSession st (SaveSessionToken (Just session4) (TI.addUTCTime 10 fakenow)) m4
@@ -369,13 +369,13 @@ main = hspec $ parallel $ do
 
     prop "parses the force invalidate key" $
       \data_  ->
-        let sessionMap v = onSM (M.insert forceInvalidateKey (B8.pack $ show v)) $ mkSessionMap data_
+        let sessionMap v = onSM (HM.insert forceInvalidateKey (B8.pack $ show v)) $ mkSessionMap data_
             allForces    = [minBound..maxBound] :: [ForceInvalidate]
             test v       = dsForceInvalidate (decomposeSession authKey_ $ sessionMap v) Q.=== v
         in Q.conjoin (test <$> allForces)
 
     it "removes the auth key" $ do
-      let m = M.singleton "a" "b"; m' = M.insert (authKey stnull) "x" m
+      let m = HM.singleton "a" "b"; m' = HM.insert (authKey stnull) "x" m
       decomposeSession authKey_ (SessionMap m') `shouldBe`
         DecomposedSession (Just "x") DoNotForceInvalidate (SessionMap m)
 
@@ -392,7 +392,7 @@ main = hspec $ parallel $ do
         let s = mkSessionMap ((T.unpack authKey_, "foo") : data_)
             authId = B8.pack authId_
         in       recomposeSession authKey_ (Just authId) s
-           Q.=== onSM (M.adjust (const authId) authKey_) s
+           Q.=== onSM (HM.adjust (const authId) authKey_) s
 
   describe "MockStorage" $ do
     sto <- runIO emptyMockStorage
@@ -401,13 +401,13 @@ main = hspec $ parallel $ do
 
 -- | Used to generate session maps on QuickCheck properties.
 mkSessionMap :: [(String, String)] -> SessionMap
-mkSessionMap = SessionMap . M.fromList . map (T.pack *** B8.pack)
+mkSessionMap = SessionMap . HM.fromList . map (T.pack *** B8.pack)
 
 
 -- | Apply a function to a 'SessionMap'.
 onSM
-  :: (M.Map T.Text B8.ByteString -> M.Map T.Text B8.ByteString)
-  -> (SessionMap                 -> SessionMap)
+  :: (HM.HashMap T.Text B8.ByteString -> HM.HashMap T.Text B8.ByteString)
+  -> (SessionMap                      -> SessionMap)
 onSM f = SessionMap . f . unSessionMap
 
 
@@ -484,7 +484,7 @@ deriving instance Show (Decomposed sess) => Show (MockOperation sess)
 -- | A mock storage used just for testing.
 data MockStorage sess =
   MockStorage
-    { mockSessions   :: I.IORef (M.Map (SessionId sess) (Session sess))
+    { mockSessions   :: I.IORef (HM.HashMap (SessionId sess) (Session sess))
     , mockOperations :: I.IORef [MockOperation sess]
     }
   deriving (Typeable)
@@ -498,30 +498,24 @@ instance IsSessionData sess => Storage (MockStorage sess) where
     -- because latter may be reordered (cf. "Memory Model" on
     -- Data.IORef's documentation).
     addMockOperation sto (GetSession sid)
-    M.lookup sid <$> I.atomicModifyIORef' (mockSessions sto) (\a -> (a, a))
+    HM.lookup sid <$> I.atomicModifyIORef' (mockSessions sto) (\a -> (a, a))
   deleteSession sto sid = do
-    I.atomicModifyIORef' (mockSessions sto) ((, ()) . M.delete sid)
+    I.atomicModifyIORef' (mockSessions sto) ((, ()) . HM.delete sid)
     addMockOperation sto (DeleteSession sid)
   deleteAllSessionsOfAuthId sto authId = do
-    I.atomicModifyIORef' (mockSessions sto) ((, ()) . M.filter (\s -> sessionAuthId s /= Just authId))
+    I.atomicModifyIORef' (mockSessions sto) ((, ()) . HM.filter (\s -> sessionAuthId s /= Just authId))
     addMockOperation sto (DeleteAllSessionsOfAuthId authId)
   insertSession sto session = do
     join $ I.atomicModifyIORef' (mockSessions sto) $ \oldMap ->
-      let (moldVal, newMap) =
-            M.insertLookupWithKey (\_ v _ -> v) (sessionKey session) session oldMap
-      in maybe
-           (newMap, return ())
-           (\oldVal -> (oldMap, mockThrow $ SessionAlreadyExists oldVal session))
-           moldVal
+      case HM.lookup (sessionKey session) oldMap of
+        Just oldVal -> (oldMap, mockThrow $ SessionAlreadyExists oldVal session)
+        Nothing     -> (HM.insert (sessionKey session) session oldMap, return ())
     addMockOperation sto (InsertSession session)
   replaceSession sto session = do
     join $ I.atomicModifyIORef' (mockSessions sto) $ \oldMap ->
-      let (moldVal, newMap) =
-            M.insertLookupWithKey (\_ v _ -> v) (sessionKey session) session oldMap
-      in maybe
-           (oldMap, mockThrow $ SessionDoesNotExist session)
-           (const (newMap, return ()))
-           moldVal
+      case HM.lookup (sessionKey session) oldMap of
+        Just _  -> (HM.insert (sessionKey session) session oldMap, return ())
+        Nothing -> (oldMap, mockThrow $ SessionDoesNotExist session)
     addMockOperation sto (ReplaceSession session)
 
 
@@ -537,7 +531,7 @@ mockThrow = E.throwIO
 emptyMockStorage :: IO (MockStorage sess)
 emptyMockStorage =
   MockStorage
-    <$> I.newIORef M.empty
+    <$> I.newIORef HM.empty
     <*> I.newIORef []
 
 
@@ -545,7 +539,7 @@ emptyMockStorage =
 prepareMockStorage :: [Session sess] -> IO (MockStorage sess)
 prepareMockStorage sessions = do
   sto <- emptyMockStorage
-  I.writeIORef (mockSessions sto) (M.fromList [(sessionKey s, s) | s <- sessions])
+  I.writeIORef (mockSessions sto) (HM.fromList [(sessionKey s, s) | s <- sessions])
   return sto
 
 

@@ -42,7 +42,7 @@ import qualified Control.Exception as E
 import qualified Database.Redis as R
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
-import qualified Data.Map.Strict as M
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Text.Encoding as TE
 import qualified Data.Time.Clock as TI
 import qualified Data.Time.Format as TI
@@ -141,8 +141,8 @@ class IsSessionData sess => RedisSession sess where
 -- | Assumes that keys are UTF-8 encoded when parsing (which is
 -- true if keys are always generated via @toHash@).
 instance RedisSession SessionMap where
-  toHash   _ = map (first TE.encodeUtf8) . M.toList . unSessionMap
-  fromHash _ = SessionMap . M.fromList . map (first TE.decodeUtf8)
+  toHash   _ = map (first TE.encodeUtf8) . HM.toList . unSessionMap
+  fromHash _ = SessionMap . HM.fromList . map (first TE.decodeUtf8)
 
 
 -- | Parse a 'Session' from a Redis hash.

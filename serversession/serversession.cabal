@@ -20,13 +20,14 @@ library
     , aeson
     , base64-bytestring         == 1.0.*
     , bytestring
-    , containers
     , data-default
+    , hashable
     , nonce                     == 1.0.*
     , path-pieces
     , text
     , time
     , transformers
+    , unordered-containers
   exposed-modules:
     Web.ServerSession.Core
     Web.ServerSession.Core.Internal
@@ -47,9 +48,11 @@ test-suite tests
   type: exitcode-stdio-1.0
   hs-source-dirs:  tests
   build-depends:
-      base, aeson, base64-bytestring, bytestring, containers,
-      data-default, nonce, path-pieces, text, time, transformers
+      base, aeson, base64-bytestring, bytestring, data-default,
+      nonce, path-pieces, text, time, transformers,
+      unordered-containers
 
+    , containers
     , hspec                     >= 2.1 && < 3
     , QuickCheck
     , serversession
