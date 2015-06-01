@@ -22,11 +22,11 @@
 -- share [mkPersist sqlSettings, mkSave \"entityDefs\"]
 --
 -- -- On Application.hs
--- import Data.Proxy (Proxy(..)) -- tagged package, or base from GHC 7.10 onwards
--- import Web.ServerSession.Core (SessionMap)
--- import Web.ServerSession.Backend.Persistent (serverSessionDefs)
+-- import qualified Data.Proxy as P -- tagged package, or base from GHC 7.10 onwards
+-- import qualified Web.ServerSession.Core as SS
+-- import qualified Web.ServerSession.Backend.Persistent as SS
 --
--- mkMigrate \"migrateAll\" (serverSessionDefs (Proxy :: Proxy SessionMap) ++ entityDefs)
+-- mkMigrate \"migrateAll\" (SS.serverSessionDefs (P.Proxy :: P.Proxy SS.SessionMap) ++ entityDefs)
 --
 -- makeFoundation =
 --     ...
