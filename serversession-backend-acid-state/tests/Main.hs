@@ -23,5 +23,6 @@ main =
         allStorageTests acidLocal it runIO parallel shouldBe shouldReturn shouldThrow
 #else
         it "is not tested on GHC < 7.10.1" $ do
+          let _ = acidMem `asTypeOf` acidLocal
           pendingWith "<https://github.com/acid-state/acid-state/issues/55>"
 #endif
