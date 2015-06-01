@@ -75,7 +75,7 @@ test-suite tests
     OverloadedStrings
     TemplateHaskell
   main-is:         Main.hs
-  ghc-options:     -Wall -threaded -with-rtsopts=-N
+  ghc-options:     -Wall -threaded "-with-rtsopts=-N -s -M1G -c" -rtsopts
 
 
 source-repository head

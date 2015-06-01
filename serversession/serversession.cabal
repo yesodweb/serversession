@@ -65,7 +65,7 @@ test-suite tests
     TypeFamilies
     UndecidableInstances
   main-is:         Main.hs
-  ghc-options:     -Wall -threaded -with-rtsopts=-N
+  ghc-options:     -Wall -threaded "-with-rtsopts=-N -s -M1G -c" -rtsopts
 
 
 source-repository head
