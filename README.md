@@ -56,6 +56,11 @@ above, please send us a pull request!  The `serversession`
 package should work for any session that may be represented as a
 mapping of keys to values.
 
+Examples:
+
+  * Using Yesod frontend + Persistent backend:
+    [GitHub link](https://github.com/yesodweb/serversession/tree/master/examples/serversession-example-yesod-persistent/).
+
 
 ## Security notes
 
@@ -72,7 +77,13 @@ optimization).  The session ID can be invalidated in order to
 prevent
 [session fixation attacks](http://www.acrossecurity.com/papers/session_fixation.pdf),
 either automatically (see below) or manually (via
-`forceInvalidate`).
+`forceInvalidate`). On a session fixation attack, the attacker
+convinces the victim to use the same session ID as his and asks
+the victim to log in.  If the session is not invalidated upon
+login, the attacker will now be in possession of a session ID
+that is logged in as the victim.  If the session is invalidated,
+the victim receives a new session ID that the attacker doesn't
+have any knowledge of.
 
 We support both idle timeouts and absolute timeouts.  Idle
 timeouts invalidate the session if a given amount of time has

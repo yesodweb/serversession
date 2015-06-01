@@ -27,7 +27,7 @@ library
         cpp-options:   -DDEVELOPMENT
         ghc-options:   -Wall -fwarn-tabs -O0
     else
-        ghc-options:   -Wall -fwarn-tabs -O2
+        ghc-options:   -Wall -fwarn-tabs -O
 
     extensions: TemplateHaskell
                 QuasiQuotes
@@ -82,6 +82,11 @@ library
                  , vector
                  , time
 
+                 , tagged
+                 , serversession                    == 1.0.*
+                 , serversession-frontend-yesod     == 1.0.*
+                 , serversession-backend-persistent == 1.0.*
+
 executable         serversession-example-yesod-persistent
     if flag(library-only)
         Buildable: False
@@ -90,7 +95,7 @@ executable         serversession-example-yesod-persistent
     hs-source-dirs:    app
     build-depends:     base, serversession-example-yesod-persistent
 
-    ghc-options:       -threaded -O2 -rtsopts -with-rtsopts=-N
+    ghc-options:       -threaded -O -rtsopts -with-rtsopts=-N
 
 test-suite test
     type:              exitcode-stdio-1.0

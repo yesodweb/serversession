@@ -4,4 +4,7 @@
 /favicon.ico FaviconR GET
 /robots.txt RobotsR GET
 
-/ HomeR GET POST
+/                    HomeR          GET
+/force               ForceR             POST
+/sessionAdd          SessionAddR        POST
+/sessionDelete/#Text SessionDeleteR     POST

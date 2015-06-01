@@ -4,10 +4,13 @@ import Import.NoFoundation
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Text.Hamlet          (hamletFile)
 import Text.Jasmine         (minifym)
+import Web.ServerSession.Backend.Persistent
+import Web.ServerSession.Frontend.Yesod
 import Yesod.Auth.BrowserId (authBrowserId)
 import Yesod.Default.Util   (addStaticContentExternal)
 import Yesod.Core.Types     (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
+
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -36,6 +39,10 @@ mkYesodData "App" $(parseRoutesFile "config/routes")
 -- | A convenient synonym for creating forms.
 type Form x = Html -> MForm (HandlerT App IO) (FormResult x, Widget)
 
+-- | Cookie name used for the sessions of this example app.
+sessionCookieName :: Text
+sessionCookieName = "SESSION"
+
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
 instance Yesod App where
@@ -43,11 +50,13 @@ instance Yesod App where
     -- see: https://github.com/yesodweb/yesod/wiki/Overriding-approot
     approot = ApprootMaster $ appRoot . appSettings
 
-    -- Store session data on the client in encrypted cookies,
-    -- default session idle timeout is 120 minutes
-    makeSessionBackend _ = Just <$> defaultClientSessionBackend
-        120    -- timeout in minutes
-        "config/client_session_key.aes"
+    -- Store session data using server-side sessions.  Change the
+    -- timeouts to small values as this is just an example (so
+    -- that you can wait for the idle timeout, for example).
+    makeSessionBackend = simpleBackend opts . SqlStorage . appConnPool
+      where opts = setIdleTimeout     (Just $  5 * 60) -- 5  minutes
+                 . setAbsoluteTimeout (Just $ 20 * 60) -- 20 minutes
+                 . setCookieName      sessionCookieName
 
     defaultLayout widget = do
         master <- getYesod

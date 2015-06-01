@@ -28,6 +28,10 @@ import Network.Wai.Middleware.RequestLogger (Destination (Logger),
 import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
                                              toLogStr)
 
+import qualified Data.Proxy as P
+import qualified Web.ServerSession.Core as SS
+import qualified Web.ServerSession.Backend.Persistent as SS
+
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
 import Handler.Common
@@ -37,6 +41,12 @@ import Handler.Home
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
 -- comments there for more details.
 mkYesodDispatch "App" resourcesApp
+
+
+-- Create migration function using both our entities and
+-- serversession-backend-persistent ones.
+mkMigrate "migrateAll" (SS.serverSessionDefs (P.Proxy :: P.Proxy SS.SessionMap) ++ entityDefs)
+
 
 -- | This function allocates resources (such as a database connection pool),
 -- performs initialization and return a foundation datatype value. This is also
