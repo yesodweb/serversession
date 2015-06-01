@@ -19,4 +19,8 @@ main =
       describe "AcidStorage on memory only" $
         allStorageTests acidMem it runIO parallel shouldBe shouldReturn shouldThrow
       describe "AcidStorage on local storage" $
+#if MIN_TOOL_VERSION_ghc(7,10,1)
         allStorageTests acidLocal it runIO parallel shouldBe shouldReturn shouldThrow
+#else
+        pendingWith "disabled on GHC < 7.10.1, cf. <https://github.com/acid-state/acid-state/issues/55>."
+#endif
