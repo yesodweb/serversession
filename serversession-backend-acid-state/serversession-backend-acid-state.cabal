@@ -48,7 +48,7 @@ test-suite tests
     , serversession
     , serversession-backend-acid-state
   main-is:         Main.hs
-  ghc-options:     -Wall -threaded "-with-rtsopts=-N -s -M1.4G -c" -rtsopts
+  ghc-options:     -Wall -threaded "-with-rtsopts=-N -s -M2G -F1.5 -c" -rtsopts
 
 
 source-repository head
