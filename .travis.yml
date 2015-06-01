@@ -57,7 +57,8 @@ script:
  - serversession/dist/build/tests/tests
  - serversession-backend-acid-state/dist/build/tests/tests
  - du -hcs state; rm -Rfv state
- - serversession-backend-persistent/dist/build/tests/tests
+ - serversession-backend-persistent/dist/build/tests/tests --skip=100\ MiB
  - du -hcs test.db*; rm -Rfv test.db*
  - psql -c 'SELECT COUNT(*) FROM "persistent_session";' -U test test; psql -c 'DROP DATABASE test;' -U postgres
  - serversession-backend-redis/dist/build/tests/tests
+ - redis-cli FLUSHALL
