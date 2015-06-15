@@ -1,4 +1,4 @@
-resolver: nightly-2015-05-29
+resolver: nightly-2015-06-09
 packages:
   - serversession
   - serversession-backend-acid-state
@@ -11,14 +11,3 @@ extra-deps:
   - acid-state-0.12.4
   - nonce-1.0.2
   - wai-session-0.3.1
-
-  # <https://github.com/fpco/stack/issues/120>
-  - cookie-0.4.1.5
-  - data-default-0.5.3
-  - data-default-class-0.0.1
-  - data-default-instances-base-0.0.1
-  - data-default-instances-containers-0.0.1
-  - data-default-instances-dlist-0.0.1
-  - data-default-instances-old-locale-0.0.1
-  - wai-extra-3.0.7.1
-  - yesod-core-1.4.9.1
