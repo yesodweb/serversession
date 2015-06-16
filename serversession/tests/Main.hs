@@ -117,17 +117,18 @@ main = hspec $ parallel $ do
       checkEmptySession ret
 
     it "returns the session from the storage when the session ID refers to an existing session" $ do
+      now <- TI.getCurrentTime
       let session = Session
             { sessionKey        = S "123456789-123456789-1234"
             , sessionAuthId     = Just authId
             , sessionData       = mkSessionMap [("a", "b"), ("c", "d")]
-            , sessionCreatedAt  = TI.addUTCTime (-10) fakenow
-            , sessionAccessedAt = TI.addUTCTime (-5)  fakenow
+            , sessionCreatedAt  = TI.addUTCTime (-10) now
+            , sessionAccessedAt = TI.addUTCTime (-5)  now
             }
           authId = "auth-id"
       st  <- createState =<< prepareMockStorage [session]
-      (retSessionMap, SaveSessionToken msession _now) <-
-          loadSession st (Just $ B8.pack $ T.unpack $ unS $ sessionKey session)
+      let key = B8.pack $ T.unpack $ unS $ sessionKey session
+      (retSessionMap, SaveSessionToken msession _now) <- loadSession st (Just key)
       retSessionMap `shouldBe` onSM (HM.insert (authKey st) authId) (sessionData session)
       msession      `shouldBe` Just session
 
