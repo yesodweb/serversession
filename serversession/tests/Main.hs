@@ -93,9 +93,13 @@ main = hspec $ parallel $ do
     let checkEmptySession (sessionMap, SaveSessionToken msession time) = do
           -- Saved time is close to now, session map is empty,
           -- there's no reference to an existing session.
-          let point1 = 0.1 {- second -} :: Double
+          --
+          -- We used to use 0.1 seconds, but Travis
+          -- intermittently had troubles with it, e.g.:
+          -- <https://travis-ci.org/yesodweb/serversession/jobs/67062266>
+          let closeEnough = 2 {- seconds -} :: Double
           now <- TI.getCurrentTime
-          abs (realToFrac $ TI.diffUTCTime now time) `shouldSatisfy` (< point1)
+          abs (realToFrac $ TI.diffUTCTime now time) `shouldSatisfy` (< closeEnough)
           sessionMap `shouldBe` TNTSessionData
           msession `shouldSatisfy` isNothing
 
