@@ -25,7 +25,7 @@ module Web.ServerSession.Backend.Acid.Internal
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Reader (ask)
-import Control.Monad.State (get, modify', put)
+import Control.Monad.State (get, modify, put)
 import Data.Acid
 import Data.Acid.Advanced
 import Data.SafeCopy
@@ -162,7 +162,7 @@ deleteSession
   => SS.SessionId sess
   -> Update (ServerSessionAcidState sess) ()
 deleteSession sid =
-  modify' $ \state ->
+  modify $ \state ->
     let oldSession            = HM.lookup sid (sessionIdToSession state)
         newSessionIdToSession = HM.delete sid (sessionIdToSession state)
         newAuthIdToSessionId  = removeSessionFromAuthId sid mauthId $ authIdToSessionId state
@@ -176,7 +176,7 @@ deleteAllSessionsOfAuthId
   => SS.AuthId
   -> Update (ServerSessionAcidState sess) ()
 deleteAllSessionsOfAuthId authId =
-  modify' $ \state ->
+  modify $ \state ->
     let sessionIds            = HM.lookup authId (authIdToSessionId state)
         newAuthIdToSessionId  = HM.delete authId (authIdToSessionId state)
         newSessionIdToSession = maybe id removeSession sessionIds $ sessionIdToSession state
@@ -196,7 +196,7 @@ insertSession session = do
           Just old -> throwAS $ SS.SessionAlreadyExists old session
       insertAuth = insertSessionForAuthId sid (SS.sessionAuthId session)
       sid        = SS.sessionKey session
-  modify' $ \state ->
+  modify $ \state ->
     ServerSessionAcidState
       (insertSess $ sessionIdToSession state)
       (insertAuth $ authIdToSessionId  state)
