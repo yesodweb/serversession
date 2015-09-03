@@ -1,5 +1,5 @@
 name:            serversession-backend-acid-state
-version:         1.0.1
+version:         1.0.2
 license:         MIT
 license-file:    LICENSE
 author:          Felipe Lessa <felipe.lessa@gmail.com>
@@ -17,7 +17,7 @@ library
   hs-source-dirs: src
   build-depends:
       base                      == 4.*
-    , acid-state                == 0.12.*
+    , acid-state                >= 0.12
     , containers
     , mtl
     , safecopy                  == 0.8.*
