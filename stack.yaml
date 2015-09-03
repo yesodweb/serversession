@@ -1,4 +1,4 @@
-resolver: nightly-2015-06-09
+resolver: lts-3.4
 packages:
   - serversession
   - serversession-backend-acid-state
@@ -8,6 +8,6 @@ packages:
   - serversession-frontend-wai
   - serversession-frontend-yesod
 extra-deps:
-  - acid-state-0.12.4
+  - acid-state-0.13.0
   - nonce-1.0.2
-  - wai-session-0.3.1
+  - wai-session-0.3.2
