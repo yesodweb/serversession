@@ -8,6 +8,8 @@ packages:
   - serversession-frontend-wai
   - serversession-frontend-yesod
 extra-deps:
-  - acid-state-0.13.0
+  - acid-state-0.14.0
   - nonce-1.0.2
   - wai-session-0.3.2
+  - safecopy-0.9.0.1
+  - cereal-0.5.1.0
