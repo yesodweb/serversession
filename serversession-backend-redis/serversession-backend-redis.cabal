@@ -1,5 +1,5 @@
 name:            serversession-backend-redis
-version:         1.0
+version:         1.0.1
 license:         MIT
 license-file:    LICENSE
 author:          Felipe Lessa <felipe.lessa@gmail.com>
