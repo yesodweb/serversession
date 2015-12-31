@@ -7,6 +7,7 @@ packages:
   - serversession-frontend-snap
   - serversession-frontend-wai
   - serversession-frontend-yesod
+  - examples/serversession-example-yesod-persistent
 extra-deps:
   - acid-state-0.14.0
   - nonce-1.0.2
