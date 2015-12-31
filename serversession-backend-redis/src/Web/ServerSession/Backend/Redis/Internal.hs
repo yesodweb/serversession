@@ -47,6 +47,11 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Time.Clock as TI
 import qualified Data.Time.Format as TI
 
+#if MIN_VERSION_time(1,5,0)
+import Data.Time.Format (defaultTimeLocale)
+#else
+import System.Locale (defaultTimeLocale)
+#endif
 
 ----------------------------------------------------------------------
 
@@ -184,13 +189,19 @@ printSession Session {..} =
 -- | Parse 'UTCTime' from a 'ByteString' stored on Redis.  Uses
 -- 'error' on parse error.
 parseUTCTime :: ByteString -> TI.UTCTime
-parseUTCTime = TI.parseTimeOrError True TI.defaultTimeLocale timeFormat . B8.unpack
+#if MIN_VERSION_time(1,5,0)
+parseUTCTime = TI.parseTimeOrError True defaultTimeLocale timeFormat . B8.unpack
+#else
+parseUTCTime =
+  fromMaybe (error "Web.ServerSession.Backend.Redis.Internal.parseUTCTime") .
+  TI.parseTime defaultTimeLocale timeFormat . B8.unpack
+#endif
 
 
 -- | Convert a 'UTCTime' into a 'ByteString' to be stored on
 -- Redis.
 printUTCTime :: TI.UTCTime -> ByteString
-printUTCTime = B8.pack . TI.formatTime TI.defaultTimeLocale timeFormat
+printUTCTime = B8.pack . TI.formatTime defaultTimeLocale timeFormat
 
 
 -- | Time format used when storing 'UTCTime'.

@@ -13,6 +13,10 @@ homepage:        https://github.com/yesodweb/serversession
 description:     API docs and the README are available at <http://www.stackage.org/package/serversession-backend-redis>
 extra-source-files: README.md
 
+flag old-locale
+  description: Use time-1.4 and old-locale (GHC 7.8).
+  default:     False
+
 library
   hs-source-dirs: src
   build-depends:
@@ -20,17 +24,22 @@ library
     , bytestring
     , hedis                     == 0.6.*
     , path-pieces
-    , tagged                    >= 0.8
+    , tagged                    >= 0.7
     , text
-    , time                      >= 1.5
+    , time                      >= 1.4
     , transformers
     , unordered-containers
 
     , serversession             == 1.0.*
+  if flag(old-locale)
+    build-depends: time == 1.4.*, old-locale
+  else
+    build-depends: time >= 1.5
   exposed-modules:
     Web.ServerSession.Backend.Redis
     Web.ServerSession.Backend.Redis.Internal
   extensions:
+    CPP
     DeriveDataTypeable
     FlexibleContexts
     OverloadedStrings
