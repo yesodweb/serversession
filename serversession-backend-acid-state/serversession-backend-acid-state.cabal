@@ -20,7 +20,7 @@ library
     , acid-state                >= 0.12
     , containers
     , mtl
-    , safecopy                  == 0.9.*
+    , safecopy                  >= 0.8
     , unordered-containers
 
     , serversession             == 1.0.*
