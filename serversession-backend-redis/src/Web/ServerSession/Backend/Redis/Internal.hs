@@ -288,7 +288,6 @@ insertSessionImpl sto session = do
         let sk = rSessionKey sid
         r <- batched (R.hmset sk) (printSession session)
         expireSession session sto
-        -- Set the expiration if applicable
         insertSessionForAuthId (sessionKey session) (sessionAuthId session)
         return (() <$ r)
 
@@ -307,7 +306,6 @@ replaceSessionImpl sto session = do
         let sk = rSessionKey sid
         _ <- R.del [sk]
         r <- batched (R.hmset sk) (printSession session)
-        -- Set the expiration if applicable
         expireSession session sto
 
         -- Remove the old auth ID from the map if it has changed.
@@ -328,6 +326,10 @@ throwRS
 throwRS = liftIO . E.throwIO
 
 
+-- | Given a session, finds the next time the session will time out,
+-- either by idle or absolute timeout and schedule the key in redis to
+-- expire at that time. This is meant to be used on every write to a
+-- session so that it is constantly setting the appropriate timeout.
 expireSession :: Session sess -> RedisStorage sess -> R.RedisTx ()
 expireSession Session {..} RedisStorage {..} =
   case minimum' (catMaybes [viaIdle, viaAbsolute]) of

@@ -10,4 +10,4 @@ main :: IO ()
 main = do
   conn <- connect defaultConnectInfo
   hspec $ describe "RedisStorage" $
-    allStorageTests (RedisStorage conn Nothing Nothing) it runIO parallel shouldBe shouldReturn shouldThrow
+    allStorageTests (RedisStorage conn (Just 999999) (Just 999999)) it runIO parallel shouldBe shouldReturn shouldThrow
