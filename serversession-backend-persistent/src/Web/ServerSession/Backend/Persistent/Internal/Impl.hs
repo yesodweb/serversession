@@ -150,7 +150,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
         (P.DBName "key")
         (P.FTTypeCon Nothing "SessionId sess")
         (P.sqlType (Proxy :: Proxy (SessionId sess)))
-        []
+        ["maxlen=30"]
         True
         P.NoReference
   persistFieldDef PersistentSessionAuthId
