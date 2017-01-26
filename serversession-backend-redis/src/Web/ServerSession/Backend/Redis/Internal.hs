@@ -32,7 +32,7 @@ import Control.Monad (void, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.ByteString (ByteString)
 import Data.List (partition)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, catMaybes)
 import Data.Proxy (Proxy(..))
 import Data.Typeable (Typeable)
 import Web.PathPieces (toPathPiece)
@@ -45,6 +45,7 @@ import qualified Data.ByteString.Char8 as B8
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text.Encoding as TE
 import qualified Data.Time.Clock as TI
+import qualified Data.Time.Clock.POSIX as TP
 import qualified Data.Time.Format as TI
 
 #if MIN_VERSION_time(1,5,0)
@@ -57,10 +58,14 @@ import System.Locale (defaultTimeLocale)
 
 
 -- | Session storage backend using Redis via the @hedis@ package.
-newtype RedisStorage sess =
+data RedisStorage sess =
   RedisStorage
     { connPool :: R.Connection
       -- ^ Connection pool to the Redis server.
+    , idleTimeout :: Maybe TI.NominalDiffTime
+    -- ^ How long should a session live after last access
+    , absoluteTimeout :: Maybe TI.NominalDiffTime
+    -- ^ How long should a session live after creation
     } deriving (Typeable)
 
 
@@ -73,8 +78,8 @@ instance RedisSession sess => Storage (RedisStorage sess) where
   getSession                _ = getSessionImpl
   deleteSession             _ = deleteSessionImpl
   deleteAllSessionsOfAuthId _ = deleteAllSessionsOfAuthIdImpl
-  insertSession             _ = insertSessionImpl
-  replaceSession            _ = replaceSessionImpl
+  insertSession               = insertSessionImpl
+  replaceSession              = replaceSessionImpl
 
 
 -- | An exception thrown by the @serversession-backend-redis@
@@ -271,8 +276,8 @@ deleteAllSessionsOfAuthIdImpl authId = do
 
 
 -- | Insert a new session.
-insertSessionImpl :: RedisSession sess => Session sess -> R.Redis ()
-insertSessionImpl session = do
+insertSessionImpl :: RedisSession sess => RedisStorage sess -> Session sess -> R.Redis ()
+insertSessionImpl sto session = do
   -- Check that no old session exists.
   let sid = sessionKey session
   moldSession <- getSessionImpl sid
@@ -282,14 +287,14 @@ insertSessionImpl session = do
       transaction $ do
         let sk = rSessionKey sid
         r <- batched (R.hmset sk) (printSession session)
-        -- TODO: R.expireat
+        expireSession session sto
         insertSessionForAuthId (sessionKey session) (sessionAuthId session)
         return (() <$ r)
 
 
 -- | Replace the contents of a session.
-replaceSessionImpl :: RedisSession sess => Session sess -> R.Redis ()
-replaceSessionImpl session = do
+replaceSessionImpl :: RedisSession sess => RedisStorage sess -> Session sess -> R.Redis ()
+replaceSessionImpl sto session = do
   -- Check that the old session exists.
   let sid = sessionKey session
   moldSession <- getSessionImpl sid
@@ -301,6 +306,7 @@ replaceSessionImpl session = do
         let sk = rSessionKey sid
         _ <- R.del [sk]
         r <- batched (R.hmset sk) (printSession session)
+        expireSession session sto
 
         -- Remove the old auth ID from the map if it has changed.
         let oldAuthId = sessionAuthId oldSession
@@ -318,3 +324,21 @@ throwRS
   => StorageException (RedisStorage sess)
   -> R.Redis a
 throwRS = liftIO . E.throwIO
+
+
+-- | Given a session, finds the next time the session will time out,
+-- either by idle or absolute timeout and schedule the key in redis to
+-- expire at that time. This is meant to be used on every write to a
+-- session so that it is constantly setting the appropriate timeout.
+expireSession :: Session sess -> RedisStorage sess -> R.RedisTx ()
+expireSession Session {..} RedisStorage {..} =
+  case minimum' (catMaybes [viaIdle, viaAbsolute]) of
+    Nothing -> return ()
+    Just t -> let ts = round (TP.utcTimeToPOSIXSeconds t)
+              in void (R.expireat sk ts)
+  where
+    sk = rSessionKey sessionKey
+    minimum' [] = Nothing
+    minimum' xs = Just (minimum xs)
+    viaIdle = flip TI.addUTCTime sessionAccessedAt <$> idleTimeout
+    viaAbsolute = flip TI.addUTCTime sessionCreatedAt  <$> absoluteTimeout
