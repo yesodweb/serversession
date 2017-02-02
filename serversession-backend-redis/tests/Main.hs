@@ -3,7 +3,6 @@ module Main (main) where
 import Database.Redis (connect, defaultConnectInfo)
 import Test.Hspec
 import Web.ServerSession.Backend.Redis
-import Web.ServerSession.Core
 import Web.ServerSession.Core.StorageTests
 
 main :: IO ()

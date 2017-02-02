@@ -7,7 +7,7 @@ module Web.ServerSession.Core.StorageTests
   ( allStorageTests
   ) where
 
-import Control.Applicative ((<$), (<$>), (<*>))
+import Control.Applicative as A
 import Control.Exception (Exception)
 import Control.Monad
 import Web.ServerSession.Core.Internal
@@ -95,7 +95,7 @@ allStorageTests storage it runIO parallel _shouldBe shouldReturn shouldThrow = d
         master <- generateSession gen HasAuthId
         let Just authId = sessionAuthId master
         preslaves <-
-          (++) <$> replicateM 100 (generateSession gen HasAuthId)
+          (++) A.<$> replicateM 100 (generateSession gen HasAuthId)
                <*> replicateM 100 (generateSession gen NoAuthId)
         let slaves = (\s -> s { sessionAuthId = Just authId }) <$> preslaves
         others <-

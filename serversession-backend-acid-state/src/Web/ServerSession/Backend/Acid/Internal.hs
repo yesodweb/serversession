@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 -- | Internal module exposing the guts of the package.  Use at
 -- your own risk.  No API stability guarantees apply.
 module Web.ServerSession.Backend.Acid.Internal
@@ -23,7 +24,7 @@ module Web.ServerSession.Backend.Acid.Internal
   , AcidStorage(..)
   ) where
 
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative as A
 import Control.Monad.Reader (ask)
 import Control.Monad.State (get, modify, put)
 import Data.Acid
@@ -103,7 +104,7 @@ insertSessionForAuthId sid = maybe id (flip (HM.insertWith S.union) (S.singleton
 -- @safeCopy@ doesn't contain instances for @HashMap@ as of now.
 instance SafeCopy SS.SessionMap where
   putCopy = contain . safePut . HM.toList . SS.unSessionMap
-  getCopy = contain $ SS.SessionMap . HM.fromList <$> safeGet
+  getCopy = contain $ SS.SessionMap . HM.fromList A.<$> safeGet
 
 
 -- | We can't @deriveSafeCopy 0 'base ''SS.SessionId@ as

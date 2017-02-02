@@ -10,7 +10,7 @@ module Web.ServerSession.Frontend.Wai.Internal
   , forceInvalidate
   ) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative as A
 import Control.Monad (guard)
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.ByteString (ByteString)
@@ -80,7 +80,7 @@ mkSession sessionRef =
   -- We need to use atomicModifyIORef instead of readIORef
   -- because latter may be reordered (cf. "Memory Model" on
   -- Data.IORef's documentation).
-  ( \k   -> kvLookup k <$> liftIO (I.atomicModifyIORef' sessionRef $ \a -> (a, a))
+  ( \k   -> kvLookup k A.<$> liftIO (I.atomicModifyIORef' sessionRef $ \a -> (a, a))
   , \k v -> liftIO (I.atomicModifyIORef' sessionRef $ flip (,) () . kvInsert k v)
   )
 

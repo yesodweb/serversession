@@ -12,7 +12,7 @@ module Web.ServerSession.Frontend.Snap.Internal
   , forceInvalidate
   ) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative as A
 import Control.Arrow (first, second)
 import Control.Monad.IO.Class (liftIO)
 import Data.ByteString (ByteString)
@@ -137,7 +137,7 @@ instance ( Storage sto
     mcookie <- S.getCookie (cookieName ssm)
     -- Load session from storage backend.
     (data1, saveSessionToken) <-
-      liftIO $ loadSession (state ssm) (S.cookieValue <$> mcookie)
+      liftIO $ loadSession (state ssm) (S.cookieValue A.<$> mcookie)
     -- Add CSRF token if needed.
     data2 <-
       maybe

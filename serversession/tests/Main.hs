@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Control.Applicative ((<$), (<$>), (<*>))
+import Control.Applicative as A
 import Control.Arrow
 import Control.Monad
 import Data.Maybe
@@ -49,7 +49,7 @@ main = hspec $ parallel $ do
       -- The probability of a given character not appearing on
       -- this test is (63/64)^(24*reps), so it's extremely
       -- unlikely for this test to fail on correct code.
-      let observed = S.fromList $ concat $ T.unpack . unS <$> sids
+      let observed = S.fromList $ concat $ T.unpack . unS A.<$> sids
           expected = S.fromList $ ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ "-_"
       observed `shouldBe` expected
 

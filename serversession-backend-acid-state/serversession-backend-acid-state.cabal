@@ -13,6 +13,10 @@ homepage:        https://github.com/yesodweb/serversession
 description:     API docs and the README are available at <http://www.stackage.org/package/serversession-backend-acid-state>
 extra-source-files: README.md
 
+flag lib-Werror
+  default: False
+  manual: True
+
 library
   hs-source-dirs: src
   build-depends:
@@ -35,6 +39,8 @@ library
     TypeFamilies
     UndecidableInstances
   ghc-options:     -Wall
+  if flag(lib-Werror)
+    ghc-options: -Werror
 
 
 test-suite tests
@@ -51,6 +57,8 @@ test-suite tests
   extensions:
     CPP
   ghc-options:     -Wall -threaded "-with-rtsopts=-N -s -M1G -c" -rtsopts
+  if flag(lib-Werror)
+    ghc-options: -Werror
 
 
 source-repository head

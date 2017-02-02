@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative as A
 import Data.Acid.Local (openLocalState, createCheckpointAndClose)
 import Data.Acid.Memory (openMemoryState)
 import Test.Hspec
@@ -15,7 +15,7 @@ main =
     (AcidStorage <$> openLocalState emptyState)
     (createCheckpointAndClose . acidState) $
     \acidLocal -> hspec $ do
-      acidMem <- runIO $ AcidStorage <$> openMemoryState emptyState
+      acidMem <- runIO $ AcidStorage A.<$> openMemoryState emptyState
       describe "AcidStorage on memory only" $
         allStorageTests acidMem it runIO parallel shouldBe shouldReturn shouldThrow
       describe "AcidStorage on local storage" $

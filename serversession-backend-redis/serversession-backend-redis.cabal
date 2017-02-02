@@ -17,6 +17,10 @@ flag old-locale
   description: Use time-1.4 and old-locale (GHC 7.8).
   default:     False
 
+flag lib-Werror
+  default: False
+  manual: True
+
 library
   hs-source-dirs: src
   build-depends:
@@ -47,6 +51,9 @@ library
     ScopedTypeVariables
     TypeFamilies
   ghc-options:     -Wall
+  if flag(lib-Werror)
+    ghc-options: -Werror
+
 
 
 test-suite tests
@@ -62,6 +69,9 @@ test-suite tests
     , serversession-backend-redis
   main-is:         Main.hs
   ghc-options:     -Wall -threaded "-with-rtsopts=-N -s -M1G -c" -rtsopts
+  if flag(lib-Werror)
+    ghc-options: -Werror
+
 
 
 source-repository head

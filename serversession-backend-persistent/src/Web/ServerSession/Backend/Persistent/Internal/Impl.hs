@@ -12,10 +12,10 @@ module Web.ServerSession.Backend.Persistent.Internal.Impl
   , throwSS
   ) where
 
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative as A
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
-import Data.Monoid (mempty)
+import Data.Monoid as M
 import Data.Proxy (Proxy(..))
 import Data.Time (UTCTime)
 import Data.Typeable (Typeable)
@@ -94,7 +94,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
         []
         []
         ["Eq", "Ord", "Show", "Typeable"]
-        mempty
+        M.mempty
         False
     where
       pfd :: P.EntityField (PersistentSession sess) typ -> P.FieldDef
@@ -109,7 +109,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
 
   fromPersistValues [a, b, c, d, e] =
     PersistentSession
-      <$> err "key"        (P.fromPersistValue a)
+      A.<$> err "key"        (P.fromPersistValue a)
       <*> err "authId"     (P.fromPersistValue b)
       <*> err "session"    (P.fromPersistValue c)
       <*> err "createdAt"  (P.fromPersistValue d)

@@ -45,7 +45,7 @@ module Web.ServerSession.Core.Internal
   , ForceInvalidate(..)
   ) where
 
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative as A
 import Control.Monad (guard, when)
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.ByteString (ByteString)
@@ -730,7 +730,7 @@ saveSessionOnDb state now maybeInput DecomposedSession {..} = do
   (saveToDb, key, createdAt) <-
     case maybeInput of
       Nothing -> liftIO $
-        (,,) <$> return (insertSession $ storage state)
+        (,,) A.<$> return (insertSession $ storage state)
              <*> generateSessionId (generator state)
              <*> return now
       Just Session {..} ->

@@ -26,7 +26,7 @@ module Web.ServerSession.Backend.Redis.Internal
   , throwRS
   ) where
 
-import Control.Applicative ((<$), (<$>))
+import Control.Applicative as A
 import Control.Arrow (first)
 import Control.Monad (void, when)
 import Control.Monad.IO.Class (liftIO)
@@ -230,7 +230,7 @@ batched f xs =
 
 -- | Get the session for the given session ID.
 getSessionImpl :: RedisSession sess => SessionId sess -> R.Redis (Maybe (Session sess))
-getSessionImpl sid = parseSession sid <$> unwrap (R.hgetall $ rSessionKey sid)
+getSessionImpl sid = parseSession sid A.<$> unwrap (R.hgetall $ rSessionKey sid)
 
 
 -- | Delete the session with given session ID.

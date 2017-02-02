@@ -12,7 +12,7 @@ module Web.ServerSession.Backend.Persistent.Internal.Types
     -- $orphanSessionMap
   ) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative as A
 import Control.Arrow (first)
 import Control.Monad ((>=>), mzero)
 import Data.ByteString (ByteString)
@@ -103,7 +103,7 @@ instance PersistFieldSql SessionMap where
 
 instance S.Serialize SessionMap where
   put = S.put . map (first TE.encodeUtf8) . HM.toList . unSessionMap
-  get = SessionMap . HM.fromList . map (first TE.decodeUtf8) <$> S.get
+  get = SessionMap . HM.fromList . map (first TE.decodeUtf8) A.<$> S.get
 
 instance A.FromJSON SessionMap where
   parseJSON = fmap fixup . A.parseJSON
