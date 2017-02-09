@@ -24,12 +24,12 @@ getHomeR = do
 -- | Invalidate the session as requested via 'forceForm'.
 postForceR :: Handler ()
 postForceR =
-  processForm "Force form" forceForm $ \force -> do
+  processForm "Force form" forceForm $ \frce -> do
     msid <- getSessionId
-    SS.forceInvalidate force
+    SS.forceInvalidate frce
     return $ concat
       [ "Forced session invalidation using "
-      , show force
+      , show frce
       , " [old session ID was "
       , show msid
       , "]." ]

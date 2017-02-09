@@ -3,7 +3,7 @@ module Handler.HomeSpec (spec) where
 import TestImport
 
 spec :: Spec
-spec = withApp $ do
+spec = yesodSpecWithSiteGenerator mkApp $ do
   return ()
   {-
     it "loads the index and checks it looks right" $ do

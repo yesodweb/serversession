@@ -47,8 +47,7 @@ matrix:
         - hvr-ghc
         packages:
         - ghc-head
-  allow_failures:
-    - env: GHCVER=head RESOLVER=nightly EXTRADEPS="" STACKARGS=""
+  - env: GHCVER=head RESOLVER=nightly EXTRADEPS="" STACKARGS="--stack-yaml=stack_nightly.yaml"
 
 before_install:
   # Download and unpack the stack executable

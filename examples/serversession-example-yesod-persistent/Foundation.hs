@@ -6,7 +6,7 @@ import Text.Hamlet          (hamletFile)
 import Text.Jasmine         (minifym)
 import Web.ServerSession.Backend.Persistent
 import Web.ServerSession.Frontend.Yesod
-import Yesod.Auth.BrowserId (authBrowserId)
+import Yesod.Auth.Dummy     (authDummy)
 import Yesod.Default.Util   (addStaticContentExternal)
 import Yesod.Core.Types     (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
@@ -140,7 +140,7 @@ instance YesodAuth App where
                 }
 
     -- You can add other plugins like BrowserID, email or OAuth here
-    authPlugins _ = [authBrowserId def]
+    authPlugins _ = [authDummy]
 
     authHttpManager = getHttpManager
 

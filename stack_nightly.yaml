@@ -1,0 +1,29 @@
+resolver: nightly-2017-02-02
+packages:
+  - serversession
+  - serversession-backend-acid-state
+  - serversession-backend-persistent
+  - serversession-backend-redis
+  - serversession-frontend-snap
+  - serversession-frontend-wai
+  - serversession-frontend-yesod
+  - examples/serversession-example-yesod-persistent
+flags:
+  serversession:
+    lib-Werror: true
+  serversession-backend-acid-state:
+    lib-Werror: true
+  serversession-backend-persistent:
+    lib-Werror: true
+  serversession-backend-redis:
+    lib-Werror: true
+  serversession-frontend-snap:
+    lib-Werror: true
+  serversession-frontend-wai:
+    lib-Werror: true
+  serversession-frontend-yesod:
+    lib-Werror: true
+extra-deps:
+  - snap-1.0.0.1
+  - heist-1.0.1.0
+  - map-syntax-0.2.0.2

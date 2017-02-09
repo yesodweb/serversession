@@ -25,8 +25,8 @@ library
     , bytestring
     , nonce
     , path-pieces
-    , snap                      == 0.14.*
-    , snap-core                 == 0.9.*
+    , snap                      >= 0.14
+    , snap-core                 >= 0.9
     , text
     , time
     , transformers

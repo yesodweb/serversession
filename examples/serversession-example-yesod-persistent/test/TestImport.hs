@@ -5,12 +5,12 @@ module TestImport
 
 import Application           (makeFoundation)
 import ClassyPrelude         as X
-import Database.Persist      as X hiding (get)
+import Database.Persist      as X hiding (delete, deleteBy, get)
 import Database.Persist.Sql  (SqlPersistM, SqlBackend, runSqlPersistMPool, rawExecute, rawSql, unSingle, connEscapeName)
-import Foundation            as X
+import Foundation            as X hiding (Handler)
 import Model                 as X
 import Test.Hspec            as X
-import Yesod.Default.Config2 (ignoreEnv, loadAppSettings)
+import Yesod.Default.Config2 (ignoreEnv, loadYamlSettings)
 import Yesod.Test            as X
 
 -- Wiping the database
@@ -25,9 +25,9 @@ runDB query = do
     pool <- fmap appConnPool getTestYesod
     liftIO $ runSqlPersistMPool query pool
 
-withApp :: SpecWith App -> Spec
-withApp = before $ do
-    settings <- loadAppSettings
+mkApp :: IO App
+mkApp = do
+    settings <- loadYamlSettings
         ["config/test-settings.yml", "config/settings.yml"]
         []
         ignoreEnv
@@ -48,8 +48,8 @@ wipeDB app = do
 
     -- Aside: SQLite by default *does not enable foreign key checks*
     -- (disabling foreign keys is only necessary for those who specifically enable them).
-    let settings = appSettings app   
-    sqliteConn <- rawConnection (sqlDatabase $ appDatabaseConf settings)    
+    let settings = appSettings app
+    sqliteConn <- rawConnection (sqlDatabase $ appDatabaseConf settings)
     disableForeignKeys sqliteConn
 
     let logFunc = messageLoggerSource app (appLogger app)

@@ -3,15 +3,15 @@ module Handler.CommonSpec (spec) where
 import TestImport
 
 spec :: Spec
-spec = withApp $ do
-    describe "robots.txt" $ do
-        it "gives a 200" $ do
-            get RobotsR
-            statusIs 200
-        it "has correct User-agent" $ do
-            get RobotsR
-            bodyContains "User-agent: *"
-    describe "favicon.ico" $ do
-        it "gives a 200" $ do
-            get FaviconR
-            statusIs 200
+spec = yesodSpecWithSiteGenerator mkApp $ do
+    ydescribe "robots.txt" $ do
+        yit "gives a 200" $ do
+             get RobotsR
+             statusIs 200
+        yit "has correct User-agent" $ do
+             get RobotsR
+             bodyContains "User-agent: *"
+    ydescribe "favicon.ico" $ do
+        yit "gives a 200" $ do
+             get FaviconR
+             statusIs 200
