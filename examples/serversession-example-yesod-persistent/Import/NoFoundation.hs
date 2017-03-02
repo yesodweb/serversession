@@ -19,7 +19,7 @@ import Yesod.Default.Config2 as Import
 
 
 #if !MIN_VERSION_yaml(0,8,16)
-loadYamlSettings :: FromJSON settings => [FilePath] -> [Value] -> EnvUsage -> IO settings
+loadYamlSettings :: FromJSON settings => [String] -> [Value] -> EnvUsage -> IO settings
 loadYamlSettings = loadAppSettings
 #endif
 #if !MIN_VERSION_yaml(0,8,17)
