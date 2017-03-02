@@ -1,5 +1,8 @@
 name:              serversession-example-yesod-persistent
 version:           0.0.0
+license:           MIT
+license-file:      LICENSE
+description:       Example yesod/persistent app using serversession
 cabal-version:     >= 1.8
 build-type:        Simple
 
@@ -25,9 +28,9 @@ library
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT
-        ghc-options:   -Wall -fwarn-tabs -O0
+        ghc-options:   -Wall -fwarn-tabs
     else
-        ghc-options:   -Wall -fwarn-tabs -O
+        ghc-options:   -Wall -fwarn-tabs
 
     extensions: TemplateHaskell
                 QuasiQuotes
@@ -46,7 +49,7 @@ library
                 TupleSections
                 RecordWildCards
 
-    build-depends: base                          >= 4
+    build-depends: base                          >= 4 && < 5
                  , yesod                         >= 1.4.1
                  , yesod-core                    >= 1.4.6
                  , yesod-auth                    >= 1.4.0
@@ -95,7 +98,7 @@ executable         serversession-example-yesod-persistent
     hs-source-dirs:    app
     build-depends:     base, serversession-example-yesod-persistent
 
-    ghc-options:       -threaded -O -rtsopts -with-rtsopts=-N
+    ghc-options:       -threaded -rtsopts -with-rtsopts=-N
 
 test-suite test
     type:              exitcode-stdio-1.0
