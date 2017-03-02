@@ -11,7 +11,10 @@ services:
  - redis-server
 
 addons:
- postgresql: "9.3"
+  apt:
+    packages:
+    - libgmp-dev
+  postgresql: "9.3"
 
 cache:
   directories:
@@ -19,7 +22,7 @@ cache:
 
 matrix:
   include:
-    - env: STACKARGS="--flag serversession-backend-redis:old-locale --stack-yaml=stack_lts-2.yaml"
+    - env: STACKARGS="--stack-yaml=stack_lts-2.yaml"
     - env: STACKARGS="--resolver=lts-3"
     - env: STACKARGS="--resolver=lts-4"
     - env: STACKARGS="--resolver=lts-5"
