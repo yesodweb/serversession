@@ -8,9 +8,10 @@ import ClassyPrelude         as X
 import Database.Persist      as X hiding (delete, deleteBy, get)
 import Database.Persist.Sql  (SqlPersistM, SqlBackend, runSqlPersistMPool, rawExecute, rawSql, unSingle, connEscapeName)
 import Foundation            as X hiding (Handler)
+import Import.NoFoundation   (loadYamlSettings)
 import Model                 as X
 import Test.Hspec            as X
-import Yesod.Default.Config2 (ignoreEnv, loadYamlSettings)
+import Yesod.Default.Config2 (ignoreEnv)
 import Yesod.Test            as X
 
 -- Wiping the database

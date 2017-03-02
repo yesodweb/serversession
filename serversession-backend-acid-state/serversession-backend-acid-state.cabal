@@ -41,6 +41,8 @@ library
   ghc-options:     -Wall
   if flag(lib-Werror)
     ghc-options: -Werror
+  if impl(ghc >= 8.0.0)
+    ghc-options: -Wno-redundant-constraints
 
 
 test-suite tests

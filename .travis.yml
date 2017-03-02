@@ -19,62 +19,39 @@ cache:
 
 matrix:
   include:
-  - env: GHCVER=7.8.4 RESOLVER=lts-2.22 EXTRADEPS="hedis-0.6.6" STACKARGS="--flag serversession-backend-redis:old-locale"
-    addons:
-      apt:
-        sources:
-        - hvr-ghc
-        packages:
-        - ghc-7.8.4
-  - env: GHCVER=7.10.2 RESOLVER=lts-3.4 EXTRADEPS="" STACKARGS=""
-    addons:
-      apt:
-        sources:
-        - hvr-ghc
-        packages:
-        - ghc-7.10.2
-  - env: GHCVER=7.10.2 RESOLVER=lts-3.20 EXTRADEPS="" STACKARGS=""
-    addons:
-      apt:
-        sources:
-        - hvr-ghc
-        packages:
-        - ghc-7.10.2
-  - env: GHCVER=head RESOLVER=nightly EXTRADEPS="" STACKARGS=""
-    addons:
-      apt:
-        sources:
-        - hvr-ghc
-        packages:
-        - ghc-head
-  - env: GHCVER=head RESOLVER=nightly EXTRADEPS="" STACKARGS="--stack-yaml=stack_nightly.yaml"
+    - env: STACKARGS="--flag serversession-backend-redis:old-locale --stack-yaml=stack_lts-2.yaml"
+    - env: STACKARGS="--resolver=lts-3"
+    - env: STACKARGS="--resolver=lts-4"
+    - env: STACKARGS="--resolver=lts-5"
+    - env: STACKARGS="--resolver=lts-6"
+    - env: STACKARGS="--resolver=lts-7"
+    - env: STACKARGS="--stack-yaml=stack_lts-7.yaml"
+    - env: STACKARGS="--stack-yaml=stack_nightly.yaml"
+  allow_failures:
+    - env: STACKARGS="--stack-yaml=stack_nightly.yaml"
 
 before_install:
   # Download and unpack the stack executable
   - mkdir -p ~/.local/bin
   - export PATH=$HOME/.local/bin:$PATH
   - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-  - export PATH=/opt/ghc/$GHCVER/bin:$PATH
-  - export RUNSTACK="stack --no-terminal --skip-ghc-check --system-ghc --resolver=$RESOLVER"
-
-install:
-  - $RUNSTACK --version
-  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
-  - $RUNSTACK install alex happy
 
 before_script:
   - psql -c "CREATE USER test WITH PASSWORD 'test';" -U postgres
   - psql -c "CREATE DATABASE test;" -U postgres
   - psql -c "GRANT ALL PRIVILEGES ON DATABASE test TO test;" -U postgres
-  - for dep in $EXTRADEPS; do echo "  - $dep" >> stack.yaml; done
+
+install:
+  - stack setup $STACKARGS
 
 script:
-  - $RUNSTACK test $STACKARGS serversession
-  - $RUNSTACK test $STACKARGS serversession-backend-acid-state
+  - stack test $STACKARGS serversession
+  - stack test $STACKARGS serversession-backend-acid-state
   - du -hcs serversession-backend-acid-state/state; rm -Rfv serversession-backend-acid-state/state
-  - $RUNSTACK test $STACKARGS serversession-backend-persistent --test-arguments='"--skip=100 MiB"'
+  - stack test $STACKARGS serversession-backend-persistent --test-arguments='"--skip=100 MiB"'
   - du -hcs serversession-backend-persistent/test.db*; rm -Rfv serversession-backend-persistent/test.db*
   - psql -c 'SELECT COUNT(*) FROM "persistent_session";' -U test test; psql -c 'DROP DATABASE test;' -U postgres
-  - $RUNSTACK test $STACKARGS serversession-backend-redis
+  - stack test $STACKARGS serversession-backend-redis
   - redis-cli FLUSHALL
-  - $RUNSTACK test $STACKARGS --no-run-tests # Make sure everything else builds
+  - stack test $STACKARGS --no-run-tests # Make sure everything else builds
+  - stack $STACKARGS sdist

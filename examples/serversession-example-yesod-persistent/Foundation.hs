@@ -151,7 +151,7 @@ instance YesodAuthPersist App
 instance RenderMessage App FormMessage where
     renderMessage _ _ = defaultFormMessage
 
-unsafeHandler :: App -> Handler a -> IO a
+unsafeHandler :: App -> Foundation.Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 
 -- Note: Some functionality previously present in the scaffolding has been
