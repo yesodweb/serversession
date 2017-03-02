@@ -17,6 +17,7 @@ flags:
     lib-Werror: true
   serversession-backend-redis:
     lib-Werror: true
+    old-locale: true
   serversession-frontend-snap:
     lib-Werror: true
   serversession-frontend-wai:
