@@ -27,10 +27,8 @@ matrix:
     - env: STACKARGS="--resolver=lts-4"
     - env: STACKARGS="--resolver=lts-5"
     - env: STACKARGS="--resolver=lts-6"
-    - env: STACKARGS="--resolver=lts-7"
     - env: STACKARGS="--stack-yaml=stack_lts-7.yaml"
-    - env: STACKARGS="--stack-yaml=stack_nightly.yaml"
-  allow_failures:
+    - env: STACKARGS="--stack-yaml=stack_lts-8.yaml"
     - env: STACKARGS="--stack-yaml=stack_nightly.yaml"
 
 before_install:
