@@ -1,3 +1,5 @@
+-- https://ghc.haskell.org/trac/ghc/ticket/12130#comment:9
+{-# LANGUAGE NoDisambiguateRecordFields, NoRecordWildCards #-}
 -- | On this serversession example, we simply provide some ways
 -- users may interact with the session.
 module Handler.Home where

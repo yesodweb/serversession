@@ -1,3 +1,5 @@
+-- https://ghc.haskell.org/trac/ghc/ticket/12130#comment:9
+{-# LANGUAGE NoDisambiguateRecordFields, NoRecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Application
     ( getApplicationDev
@@ -67,7 +69,7 @@ makeFoundation appSettings = do
     -- logging function. To get out of this loop, we initially create a
     -- temporary foundation without a real connection pool, get a log function
     -- from there, and then create the real foundation.
-    let mkFoundation appConnPool = App {..}
+    let mkFoundation appConnPool = App appSettings appStatic appConnPool appHttpManager appLogger
         tempFoundation = mkFoundation $ error "connPool forced in tempFoundation"
         logFunc = messageLoggerSource tempFoundation appLogger
 
