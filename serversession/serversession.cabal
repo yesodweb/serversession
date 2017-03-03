@@ -12,6 +12,7 @@ build-type:      Simple
 homepage:        https://github.com/yesodweb/serversession
 description:     API docs and the README are available at <http://www.stackage.org/package/serversession>
 extra-source-files: README.md
+                    changelog.md
 
 flag lib-Werror
   default: False

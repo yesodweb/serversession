@@ -12,6 +12,7 @@ build-type:      Simple
 homepage:        https://github.com/yesodweb/serversession
 description:     API docs and the README are available at <http://www.stackage.org/package/serversession-backend-redis>
 extra-source-files: README.md
+                    changelog.md
 
 flag old-locale
   description: Use time-1.4 and old-locale (GHC 7.8).
