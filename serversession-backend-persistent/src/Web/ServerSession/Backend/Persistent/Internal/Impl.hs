@@ -159,7 +159,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
         (P.DBName "auth_id")
         (P.FTTypeCon Nothing "ByteStringJ")
         (P.sqlType (Proxy :: Proxy ByteStringJ))
-        ["Maybe"]
+        ["Maybe", "default=NULL"]
         True
         P.NoReference
   persistFieldDef PersistentSessionSession
