@@ -1,4 +1,4 @@
-resolver: lts-3.4
+resolver: lts-10.3
 packages:
   - serversession
   - serversession-backend-acid-state
@@ -24,6 +24,7 @@ flags:
   serversession-frontend-yesod:
     lib-Werror: true
 extra-deps:
-  - acid-state-0.14.0
-  - nonce-1.0.2
-  - wai-session-0.3.2
+  - acid-state-0.14.3
+  - snap-1.1.0.0
+  - heist-1.0.1.2
+  - map-syntax-0.2.0.2
