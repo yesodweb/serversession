@@ -27,7 +27,7 @@ library
   build-depends:
       base                      == 4.*
     , bytestring
-    , hedis                     < 0.10
+    , hedis                     < 0.11
     , path-pieces
     , tagged                    >= 0.7
     , text
