@@ -46,13 +46,13 @@ install:
   - stack setup $STACKARGS
 
 script:
-  - stack test $STACKARGS serversession
-  - stack test $STACKARGS serversession-backend-acid-state
+  - stack test --fast $STACKARGS serversession
+  - stack test --fast $STACKARGS serversession-backend-acid-state
   - du -hcs serversession-backend-acid-state/state; rm -Rfv serversession-backend-acid-state/state
-  - stack test $STACKARGS serversession-backend-persistent --test-arguments='"--skip=100 MiB"'
+  - stack test --fast $STACKARGS serversession-backend-persistent --test-arguments='"--skip=100 MiB"'
   - du -hcs serversession-backend-persistent/test.db*; rm -Rfv serversession-backend-persistent/test.db*
   - psql -c 'SELECT COUNT(*) FROM "persistent_session";' -U test test; psql -c 'DROP DATABASE test;' -U postgres
-  - stack test $STACKARGS serversession-backend-redis
+  - stack test --fast $STACKARGS serversession-backend-redis
   - redis-cli FLUSHALL
-  - stack test $STACKARGS --no-run-tests # Make sure everything else builds
+  - stack test --fast $STACKARGS --no-run-tests # Make sure everything else builds
   - stack $STACKARGS sdist
