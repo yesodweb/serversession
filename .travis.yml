@@ -6,6 +6,8 @@
 # and taking the idea of using cabal-meta from yesodweb/yesod.
 
 sudo: false
+dist: trusty
+language: c
 
 services:
  - redis-server
@@ -23,14 +25,11 @@ cache:
 
 matrix:
   include:
-    - env: STACKARGS="--stack-yaml=stack_lts-2.yaml"
-    - env: STACKARGS="--resolver=lts-3"
-    - env: STACKARGS="--resolver=lts-4"
-    - env: STACKARGS="--resolver=lts-5"
-    - env: STACKARGS="--resolver=lts-6"
-    - env: STACKARGS="--stack-yaml=stack_lts-7.yaml"
-    - env: STACKARGS="--stack-yaml=stack_lts-8.yaml"
-    - env: STACKARGS="--stack-yaml=stack_nightly.yaml"
+    # last 3 LTS and nightly
+    - env: STACKARGS="--resolver=lts-8"
+    - env: STACKARGS="--resolver=lts-9"
+    - env: STACKARGS="--resolver=lts-10"
+    - env: STACKARGS="--resolver=nightly"
 
 before_install:
   # Download and unpack the stack executable
