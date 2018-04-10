@@ -6,7 +6,7 @@
 --   @Max-age@ field is not supported by all browsers: some
 --   browsers will treat them as non-persistent cookies.
 --
---   * Also, the @Max-age@ is fixed and does not take a given a
+--   * Also, the @Max-age@ is fixed and does not take a given
 --   session into consideration.
 module Web.ServerSession.Frontend.Wai
   ( -- * Simple interface
