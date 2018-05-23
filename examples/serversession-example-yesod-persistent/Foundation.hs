@@ -37,7 +37,7 @@ instance HasHttpManager App where
 mkYesodData "App" $(parseRoutesFile "config/routes")
 
 -- | A convenient synonym for creating forms.
-type Form x = Html -> MForm (HandlerT App IO) (FormResult x, Widget)
+type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
 
 -- | Cookie name used for the sessions of this example app.
 sessionCookieName :: Text
@@ -104,7 +104,7 @@ instance Yesod App where
 
     -- What messages should be logged. The following includes all messages when
     -- in development, and warnings and errors in production.
-    shouldLog app _source level =
+    shouldLogIO app _source level = return $
         appShouldLogAll (appSettings app)
             || level == LevelWarn
             || level == LevelError
@@ -117,6 +117,7 @@ instance YesodPersist App where
     runDB action = do
         master <- getYesod
         runSqlPool action $ appConnPool master
+
 instance YesodPersistRunner App where
     getDBRunner = defaultGetDBRunner appConnPool
 
@@ -130,11 +131,11 @@ instance YesodAuth App where
     -- Override the above two destinations when a Referer: header is present
     redirectToReferer _ = True
 
-    getAuthId creds = runDB $ do
+    authenticate creds = liftHandler $ runDB $ do
         x <- getBy $ UniqueUser $ credsIdent creds
         case x of
-            Just (Entity uid _) -> return $ Just uid
-            Nothing -> Just <$> insert User
+            Just (Entity uid _) -> return $ Authenticated uid
+            Nothing -> Authenticated <$> insert User
                 { userIdent = credsIdent creds
                 , userPassword = Nothing
                 }
@@ -142,7 +143,7 @@ instance YesodAuth App where
     -- You can add other plugins like BrowserID, email or OAuth here
     authPlugins _ = [authDummy]
 
-    authHttpManager = getHttpManager
+    authHttpManager = getHttpManager <$> getYesod
 
 instance YesodAuthPersist App
 

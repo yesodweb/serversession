@@ -1,4 +1,4 @@
-resolver: lts-10.3
+resolver: lts-11.9
 packages:
   - serversession
   - serversession-backend-acid-state
@@ -24,14 +24,14 @@ flags:
   serversession-frontend-yesod:
     lib-Werror: true
 extra-deps:
-  # for lts 9, 10
   - acid-state-0.14.3
-  - snap-1.1.0.0
-  - snap-core-1.0.3.1
-  - snap-server-1.0.3.3
-  - heist-1.0.1.2
-  - map-syntax-0.2.0.2
-  - xmlhtml-0.2.5.2
+  # for lts 9, 10
+  # - snap-1.1.0.0
+  # - snap-core-1.0.3.1
+  # - snap-server-1.0.3.3
+  # - heist-1.0.1.2
+  # - map-syntax-0.2.0.2
+  # - xmlhtml-0.2.5.2
   # for lts-8
-  - blaze-html-0.9.0.1
-  - blaze-markup-0.8.2.0
+  # - blaze-html-0.9.0.1
+  # - blaze-markup-0.8.2.0
