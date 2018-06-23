@@ -32,7 +32,7 @@ library
     , transformers
     , unordered-containers
     , wai
-    , yesod-core                == 1.4.*
+    , yesod-core                >= 1.4 && < 1.7
 
     , serversession             == 1.0.*
   exposed-modules:
