@@ -25,10 +25,10 @@ cache:
 
 matrix:
   include:
-    # last 3 LTS and nightly
-    - env: STACKARGS="--resolver=lts-8"
-    - env: STACKARGS="--resolver=lts-9"
-    - env: STACKARGS="--resolver=lts-10"
+    - env: STACKARGS="--resolver=lts-11"
+    - env: STACKARGS="--resolver=lts-12"
+    - env: STACKARGS="--resolver=nightly"
+  allow_failures:
     - env: STACKARGS="--resolver=nightly"
 
 before_install:
