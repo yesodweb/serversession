@@ -10,6 +10,7 @@ module Web.ServerSession.Core.StorageTests
 import Control.Applicative as A
 import Control.Exception (Exception)
 import Control.Monad
+import DataTypeTest (roundUTCTime)
 import Web.ServerSession.Core.Internal
 
 import qualified Crypto.Nonce as N
@@ -173,8 +174,8 @@ allStorageTests storage it runIO parallel _shouldBe shouldReturn shouldThrow = d
               { sessionKey        = sid
               , sessionAuthId     = Nothing
               , sessionData       = SessionMap $ HM.fromList vals
-              , sessionCreatedAt  = now
-              , sessionAccessedAt = now
+              , sessionCreatedAt  = roundUTCTime now
+              , sessionAccessedAt = roundUTCTime now
               }
             ver2 = session { sessionData = SessionMap HM.empty }
         run (getSession storage sid) `shouldReturn` Nothing
@@ -223,8 +224,8 @@ generateSession gen hasAuthId = do
     { sessionKey        = sid
     , sessionAuthId     = authId
     , sessionData       = SessionMap data_
-    , sessionCreatedAt  = TI.addUTCTime (-1000) now
-    , sessionAccessedAt = now
+    , sessionCreatedAt  = roundUTCTime $ TI.addUTCTime (-1000) now
+    , sessionAccessedAt = roundUTCTime $ now
     }
 
 data HasAuthId = HasAuthId | NoAuthId

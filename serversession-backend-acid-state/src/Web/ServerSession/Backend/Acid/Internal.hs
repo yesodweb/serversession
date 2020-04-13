@@ -109,14 +109,14 @@ instance SafeCopy SS.SessionMap where
 
 -- | We can't @deriveSafeCopy 0 'base ''SS.SessionId@ as
 -- otherwise we'd require an unneeded @SafeCopy sess@.
-instance SafeCopy (SS.SessionId sess) where
+instance Typeable sess => SafeCopy (SS.SessionId sess) where
   putCopy = contain . safePut . SSI.unS
   getCopy = contain $ SSI.S <$> safeGet
 
 
 -- | We can't @deriveSafeCopy 0 'base ''SS.Session@ due to the
 -- required context.
-instance SafeCopy (SS.Decomposed sess) => SafeCopy (SS.Session sess) where
+instance (Typeable sess, SafeCopy (SS.Decomposed sess)) => SafeCopy (SS.Session sess) where
   putCopy (SS.Session key authId data_ createdAt accessedAt) = contain $ do
     put_t <- getSafePut
     safePut key
@@ -136,7 +136,7 @@ instance SafeCopy (SS.Decomposed sess) => SafeCopy (SS.Session sess) where
 
 -- | We can't @deriveSafeCopy 0 'base ''ServerSessionAcidState@ due
 -- to the required context.
-instance SafeCopy (SS.Decomposed sess) => SafeCopy (ServerSessionAcidState sess) where
+instance (Typeable sess, SafeCopy (SS.Decomposed sess)) => SafeCopy (ServerSessionAcidState sess) where
   putCopy (ServerSessionAcidState sits aits) = contain $ do
     safePut (HM.toList sits)
     safePut (HM.toList aits)
@@ -273,23 +273,23 @@ data DeleteAllSessionsOfAuthId sess = DeleteAllSessionsOfAuthId SS.AuthId derivi
 data InsertSession sess = InsertSession (SS.Session sess) deriving (Typeable)
 data ReplaceSession sess = ReplaceSession (SS.Session sess) deriving (Typeable)
 
-instance SafeCopy (GetSession sess) where
+instance Typeable sess => SafeCopy (GetSession sess) where
   putCopy (GetSession v) = contain $ safePut v
   getCopy = contain $ GetSession <$> safeGet
 
-instance SafeCopy (DeleteSession sess) where
+instance Typeable sess => SafeCopy (DeleteSession sess) where
   putCopy (DeleteSession v) = contain $ safePut v
   getCopy = contain $ DeleteSession <$> safeGet
 
-instance SafeCopy (DeleteAllSessionsOfAuthId sess) where
+instance Typeable sess => SafeCopy (DeleteAllSessionsOfAuthId sess) where
   putCopy (DeleteAllSessionsOfAuthId v) = contain $ safePut v
   getCopy = contain $ DeleteAllSessionsOfAuthId <$> safeGet
 
-instance SafeCopy (SS.Decomposed sess) => SafeCopy (InsertSession sess) where
+instance (Typeable sess, SafeCopy (SS.Decomposed sess)) => SafeCopy (InsertSession sess) where
   putCopy (InsertSession v) = contain $ safePut v
   getCopy = contain $ InsertSession <$> safeGet
 
-instance SafeCopy (SS.Decomposed sess) => SafeCopy (ReplaceSession sess) where
+instance (Typeable sess, SafeCopy (SS.Decomposed sess)) => SafeCopy (ReplaceSession sess) where
   putCopy (ReplaceSession v) = contain $ safePut v
   getCopy = contain $ ReplaceSession <$> safeGet
 
@@ -322,8 +322,8 @@ instance AcidContext sess => Method (ReplaceSession sess) where
 
 instance AcidContext sess => IsAcidic (ServerSessionAcidState sess) where
   acidEvents =
-    [ QueryEvent  $ \(GetSession sid)                   -> getSession sid
-    , UpdateEvent $ \(DeleteSession sid)                -> deleteSession sid
-    , UpdateEvent $ \(DeleteAllSessionsOfAuthId authId) -> deleteAllSessionsOfAuthId authId
-    , UpdateEvent $ \(InsertSession session)            -> insertSession session
-    , UpdateEvent $ \(ReplaceSession session)           -> replaceSession session ]
+    [ QueryEvent  (\(GetSession sid)                   -> getSession sid) safeCopyMethodSerialiser
+    , UpdateEvent (\(DeleteSession sid)                -> deleteSession sid) safeCopyMethodSerialiser
+    , UpdateEvent (\(DeleteAllSessionsOfAuthId authId) -> deleteAllSessionsOfAuthId authId) safeCopyMethodSerialiser
+    , UpdateEvent (\(InsertSession session)            -> insertSession session) safeCopyMethodSerialiser
+    , UpdateEvent (\(ReplaceSession session)           -> replaceSession session) safeCopyMethodSerialiser ]

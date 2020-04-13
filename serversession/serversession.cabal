@@ -29,6 +29,7 @@ library
     , hashable
     , nonce                     == 1.0.*
     , path-pieces
+    , persistent-test
     , text
     , time
     , transformers
