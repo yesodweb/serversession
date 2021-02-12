@@ -1,5 +1,5 @@
 name:            serversession-backend-persistent
-version:         1.0.4
+version:         1.0.5
 license:         MIT
 license-file:    LICENSE
 author:          Felipe Lessa <felipe.lessa@gmail.com>
@@ -27,7 +27,7 @@ library
     , bytestring
     , cereal                    >= 0.4
     , path-pieces
-    , persistent                >= 2.1
+    , persistent                >= 2.10
     , tagged                    >= 0.7
     , text
     , time
