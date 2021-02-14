@@ -1,3 +1,4 @@
+cabal-version:   >= 1.10
 name:            serversession-backend-persistent
 version:         1.0.5
 license:         MIT
@@ -7,7 +8,6 @@ maintainer:      Michael Xavier <michael@michaelxavier.net>
 synopsis:        Storage backend for serversession using persistent and an RDBMS.
 category:        Web
 stability:       Stable
-cabal-version:   >= 1.8
 build-type:      Simple
 homepage:        https://github.com/yesodweb/serversession
 description:     API docs and the README are available at <http://www.stackage.org/package/serversession-backend-persistent>
@@ -19,6 +19,7 @@ flag lib-Werror
   manual: True
 
 library
+  default-language: Haskell2010
   hs-source-dirs: src
   build-depends:
       base                      == 4.*
@@ -62,6 +63,7 @@ library
 
 
 test-suite tests
+  default-language: Haskell2010
   type: exitcode-stdio-1.0
   hs-source-dirs:  tests
   build-depends:
