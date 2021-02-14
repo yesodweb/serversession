@@ -39,7 +39,7 @@ library
     Web.ServerSession.Core
     Web.ServerSession.Core.Internal
     Web.ServerSession.Core.StorageTests
-  extensions:
+  default-extensions:
     DeriveDataTypeable
     FlexibleContexts
     OverloadedStrings
@@ -55,6 +55,7 @@ library
 
 
 test-suite tests
+  default-language: Haskell2010
   type: exitcode-stdio-1.0
   hs-source-dirs:  tests
   build-depends:
@@ -66,7 +67,7 @@ test-suite tests
     , hspec                     >= 2.1 && < 3
     , QuickCheck
     , serversession
-  extensions:
+  default-extensions:
     DeriveDataTypeable
     FlexibleContexts
     OverloadedStrings
