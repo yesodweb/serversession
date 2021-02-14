@@ -38,7 +38,7 @@ library
   exposed-modules:
     Web.ServerSession.Frontend.Snap
     Web.ServerSession.Frontend.Snap.Internal
-  extensions:
+  default-extensions:
     DeriveDataTypeable
     FlexibleContexts
     OverloadedStrings

@@ -40,7 +40,7 @@ library
     Web.ServerSession.Backend.Persistent
     Web.ServerSession.Backend.Persistent.Internal.Impl
     Web.ServerSession.Backend.Persistent.Internal.Types
-  extensions:
+  default-extensions:
     DeriveDataTypeable
     EmptyDataDecls
     FlexibleContexts
@@ -81,7 +81,7 @@ test-suite tests
 
     , serversession
     , serversession-backend-persistent
-  extensions:
+  default-extensions:
     OverloadedStrings
     TemplateHaskell
   main-is:         Main.hs
