@@ -1,5 +1,5 @@
 name:            serversession
-version:         1.0.1
+version:         1.0.2
 license:         MIT
 license-file:    LICENSE
 author:          Felipe Lessa <felipe.lessa@gmail.com>
@@ -29,6 +29,7 @@ library
     , hashable
     , nonce                     == 1.0.*
     , path-pieces
+    , persistent-test
     , text
     , time
     , transformers

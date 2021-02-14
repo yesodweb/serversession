@@ -10,12 +10,12 @@ dist: trusty
 language: c
 
 services:
- - redis-server
+  - redis-server
 
 addons:
   apt:
     packages:
-    - libgmp-dev
+      - libgmp-dev
   postgresql: "9.3"
 
 cache:
@@ -25,8 +25,7 @@ cache:
 
 matrix:
   include:
-    - env: STACKARGS="--resolver=lts-11"
-    - env: STACKARGS="--resolver=lts-12"
+    - env: STACKARGS="--resolver=lts-15"
     - env: STACKARGS="--resolver=nightly"
   allow_failures:
     - env: STACKARGS="--resolver=nightly"

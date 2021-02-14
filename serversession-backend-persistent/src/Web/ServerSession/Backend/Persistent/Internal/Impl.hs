@@ -96,6 +96,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
         ["Eq", "Ord", "Show", "Typeable"]
         M.mempty
         False
+        Nothing
     where
       pfd :: P.EntityField (PersistentSession sess) typ -> P.FieldDef
       pfd = P.persistFieldDef
@@ -142,8 +143,10 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
                  (P.SqlOther "SqlType unset for key")
                  []
                  True
-                 P.NoReference]
+                 P.NoReference
+                 Nothing]
               []))
+        Nothing
   persistFieldDef PersistentSessionKey
     = P.FieldDef
         (P.HaskellName "key")
@@ -153,6 +156,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
         ["maxlen=30"]
         True
         P.NoReference
+        Nothing
   persistFieldDef PersistentSessionAuthId
     = P.FieldDef
         (P.HaskellName "authId")
@@ -162,6 +166,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
         ["Maybe", "default=NULL"]
         True
         P.NoReference
+        Nothing
   persistFieldDef PersistentSessionSession
     = P.FieldDef
         (P.HaskellName "session")
@@ -171,6 +176,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
         []
         True
         P.NoReference
+        Nothing
   persistFieldDef PersistentSessionCreatedAt
     = P.FieldDef
         (P.HaskellName "createdAt")
@@ -180,6 +186,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
         []
         True
         P.NoReference
+        Nothing
   persistFieldDef PersistentSessionAccessedAt
     = P.FieldDef
         (P.HaskellName "accessedAt")
@@ -189,6 +196,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
         []
         True
         P.NoReference
+        Nothing
 
   persistIdField = PersistentSessionId
 

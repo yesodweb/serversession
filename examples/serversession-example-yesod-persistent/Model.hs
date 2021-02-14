@@ -1,3 +1,6 @@
+{-# LANGUAGE DerivingStrategies   #-}
+{-# LANGUAGE StandaloneDeriving   #-}
+{-# LANGUAGE UndecidableInstances #-}
 module Model where
 
 import ClassyPrelude.Yesod

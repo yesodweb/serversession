@@ -1,3 +1,5 @@
+1.0.4
+* bump hedis to 0.13
 1.0.3
 * Allow hedis-0.10
 1.0.2
