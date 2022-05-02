@@ -50,6 +50,7 @@ import Control.Monad (guard, when)
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.ByteString (ByteString)
 import Data.Hashable (Hashable(..))
+import Data.Kind (Type)
 import Data.Maybe (catMaybes, fromMaybe, isJust)
 import Data.Text (Text)
 import Data.Time (UTCTime, getCurrentTime)
@@ -171,7 +172,7 @@ class ( Show (Decomposed sess)
       ) => IsSessionData sess where
   -- | The type of the session data after being decomposed.  This
   -- may be the same as @sess@.
-  type Decomposed sess :: *
+  type Decomposed sess :: Type
 
   -- | Empty session data.
   emptySession :: sess
@@ -273,11 +274,11 @@ class ( Typeable sto
       , IsSessionData (SessionData sto)
       ) => Storage sto where
   -- | The session data type used by this storage.
-  type SessionData sto :: *
+  type SessionData sto :: Type
 
   -- | Monad where transactions happen for this backend.
   -- We do not require transactions to be ACID.
-  type TransactionM sto :: * -> *
+  type TransactionM sto :: Type -> Type
 
   -- | Run a transaction on the IO monad.
   runTransactionM :: sto -> TransactionM sto a -> IO a
