@@ -15,7 +15,8 @@ import qualified Control.Exception as E
 import qualified Database.Persist.TH as P
 import qualified Database.Persist.Sql as P
 
-P.mkMigrate "migrateAll" (serverSessionDefs (Proxy :: Proxy SessionMap))
+type PersistentSessionBySessionMap = PersistentSession SessionMap
+P.mkMigrate "migrateAll" (mkServerSessionDefs (Proxy :: Proxy PersistentSessionBySessionMap) "PersistentSessionBySessionMap")
 
 main :: IO ()
 main = hspec $

@@ -4,7 +4,7 @@ module Web.ServerSession.Backend.Persistent.Internal.Impl
   ( PersistentSession(..)
   , PersistentSessionId
   , EntityField(..)
-  , serverSessionDefs
+  , mkServerSessionDefs
   , psKey
   , toPersistentSession
   , fromPersistentSession
@@ -26,8 +26,9 @@ import qualified Control.Exception as E
 import qualified Data.Aeson as A
 import qualified Data.Text as T
 import qualified Database.Persist as P
-import qualified Database.Persist.Sql as P
 import qualified Database.Persist.EntityDef.Internal as P (EntityDef(..)) -- I need EntityDef constructor.
+import qualified Database.Persist.Quasi.Internal as P
+import qualified Database.Persist.Sql as P
 
 import Web.ServerSession.Backend.Persistent.Internal.Types
 
@@ -58,7 +59,7 @@ deriving instance Show (Decomposed sess) => Show (PersistentSession sess)
 
 type PersistentSessionId sess = Key (PersistentSession sess)
 
-instance P.PersistFieldSql (Decomposed sess) => P.PersistEntity (PersistentSession sess) where
+instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (PersistentSession sess) where
   type PersistEntityBackend (PersistentSession sess) = P.SqlBackend
 
   data Unique (PersistentSession sess)
@@ -82,7 +83,7 @@ instance P.PersistFieldSql (Decomposed sess) => P.PersistEntity (PersistentSessi
 
   entityDef _
     = P.EntityDef
-    { entityHaskell = P.EntityNameHS "PersistentSession"
+    { entityHaskell = P.EntityNameHS "PersistentSession" -- it's dummy.
     , entityDB = P.EntityNameDB "persistent_session"
     , entityId = P.EntityIdField $ pfd PersistentSessionId
     , entityAttrs = ["json"]
@@ -282,10 +283,12 @@ instance ( A.FromJSON (Decomposed sess)
 -- 'SqlStorage'.  Example using 'SessionMap':
 --
 -- @
--- serverSessionDefs (Proxy :: Proxy SessionMap)
+-- type PersistentSessionBySessionMap = PersistentSession SessionMap
+-- P.mkMigrate "migrateAll" (mkServerSessionDefs (Proxy :: Proxy PersistentSessionBySessionMap) "PersistentSessionBySessionMap")
 -- @
-serverSessionDefs :: forall sess. PersistEntity (PersistentSession sess) => Proxy sess -> [P.EntityDef]
-serverSessionDefs _ = [entityDef (Proxy :: Proxy (PersistentSession sess))]
+mkServerSessionDefs :: forall sess. PersistEntity sess => Proxy sess -> T.Text -> [P.UnboundEntityDef]
+mkServerSessionDefs _ name =
+  [P.unbindEntityDef $ (entityDef (Proxy :: Proxy sess)) { P.entityHaskell = P.EntityNameHS name }]
 
 -- | Generate a key to the entity from the session ID.
 psKey :: SessionId sess -> Key (PersistentSession sess)

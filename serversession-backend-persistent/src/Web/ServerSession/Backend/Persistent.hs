@@ -41,7 +41,9 @@
 -- will not exist.
 module Web.ServerSession.Backend.Persistent
   ( SqlStorage(..)
-  , serverSessionDefs
+  , PersistentSession(..)
+  , PersistentSessionId
+  , mkServerSessionDefs
   ) where
 
 import Web.ServerSession.Backend.Persistent.Internal.Impl
