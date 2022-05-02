@@ -5,33 +5,26 @@
 
 packages:
 - completed:
-    hackage: snap-1.1.3.0@sha256:0c0814d2ab1c3d5f22cef4615b2913ded18e87710ea6febdbe6e3ab8d9838735,8872
-    pantry-tree:
-      size: 5743
-      sha256: 804f55a8cab81e720547308e799243e81f43e089b860c0d3160a938cad86ed0d
-  original:
-    hackage: snap-1.1.3.0@sha256:0c0814d2ab1c3d5f22cef4615b2913ded18e87710ea6febdbe6e3ab8d9838735,8872
-- completed:
-    hackage: acid-state-0.16.0@sha256:a5640fd8d99bdb5f152476a2ae56cc8eb81864b280c8ec7d1387e81296ed844d,6190
-    pantry-tree:
-      size: 13678
-      sha256: c6e4b7f00d2a500e6286beafe3a2da7ba898a9ea31f5744df57cdce8a8f5890f
-  original:
-    hackage: acid-state-0.16.0@sha256:a5640fd8d99bdb5f152476a2ae56cc8eb81864b280c8ec7d1387e81296ed844d,6190
-- completed:
-    hackage: heist-1.1.0.1@sha256:7355cf8c1a7ef84c0c800c0539f7b99e7e540cace697238009a2dea1f05231f1,9311
+    hackage: heist-1.1.0.1@sha256:121288965f6c77b0d06a09c5d8a3b80f9a083830d06857555e99f10868b18dcb,9311
     pantry-tree:
       size: 7354
-      sha256: a2635ed49de6debaf8b98189989f83ab58dcc125c6ae8e57f6fe0903bc7fa8ff
+      sha256: 7144a2b1802790977bfbd30ea14ceca59d42107cf5d5b6f2806191e4d01edba5
   original:
-    hackage: heist-1.1.0.1@sha256:7355cf8c1a7ef84c0c800c0539f7b99e7e540cace697238009a2dea1f05231f1,9311
+    hackage: heist-1.1.0.1@sha256:121288965f6c77b0d06a09c5d8a3b80f9a083830d06857555e99f10868b18dcb,9311
 - completed:
-    hackage: map-syntax-0.3@sha256:ca8b449615fa57419c16a5e98844624a6ac758692b87b3cfae8c74c87c56f1b2,2420
+    hackage: io-streams-haproxy-1.0.1.0@sha256:fd6c585c46679752509df185c9d8f948d1ee03625005742ab5de3ebaa882690a,3084
+    pantry-tree:
+      size: 589
+      sha256: 33c420a00acd8e86924fca0a713c658e5da4acc071b170907e81c07eb8bc0dac
+  original:
+    hackage: io-streams-haproxy-1.0.1.0@sha256:fd6c585c46679752509df185c9d8f948d1ee03625005742ab5de3ebaa882690a,3084
+- completed:
+    hackage: map-syntax-0.3@sha256:9b92c51bcaf1d55f60f8aaef9a96adb29acb77112631fa4110fd5dcae54be7a6,2420
     pantry-tree:
       size: 558
-      sha256: c196bee0433f9540e4251ebd1be06d802ff7cc4931e6f0aedc38babd28683a3c
+      sha256: bed5e77f083feeda1c13daf961d29ca1fbe96b7a87302c416fb1122a99d779cb
   original:
-    hackage: map-syntax-0.3@sha256:ca8b449615fa57419c16a5e98844624a6ac758692b87b3cfae8c74c87c56f1b2,2420
+    hackage: map-syntax-0.3@sha256:9b92c51bcaf1d55f60f8aaef9a96adb29acb77112631fa4110fd5dcae54be7a6,2420
 - completed:
     hackage: pwstore-fast-2.4.4@sha256:9b6a37510d8b9f37f409a8ab3babac9181afcaaa3fce8ba1c131a7ed3de30698,1351
     pantry-tree:
@@ -40,15 +33,22 @@ packages:
   original:
     hackage: pwstore-fast-2.4.4@sha256:9b6a37510d8b9f37f409a8ab3babac9181afcaaa3fce8ba1c131a7ed3de30698,1351
 - completed:
-    hackage: xmlhtml-0.2.5.2@sha256:3f0990f725551985d777e8edb5563fe99aee998f1fde6a7633f720f76df54701,46997
+    hackage: snap-1.1.3.1@sha256:ad589f2838a10bde793150e113c147996ba9dc8b522f34d1eb3297493c8d2672,8901
     pantry-tree:
-      size: 61835
-      sha256: bb1bd95db3738e18d112bbc9724510ee64a51b7eda61494507f4957c5e2281f6
+      size: 5743
+      sha256: f301fd1bf3e0f249892764e04f5b4db6bc39a05e2323236f0b3f1cdcf1ace053
   original:
-    hackage: xmlhtml-0.2.5.2@sha256:3f0990f725551985d777e8edb5563fe99aee998f1fde6a7633f720f76df54701,46997
+    hackage: snap-1.1.3.1@sha256:ad589f2838a10bde793150e113c147996ba9dc8b522f34d1eb3297493c8d2672,8901
+- completed:
+    hackage: snap-server-1.1.2.0@sha256:3167b836a0b0ee49c8d6c973535c33f583c9ef9ba62d9723f08509b38368cb8f,14641
+    pantry-tree:
+      size: 3313
+      sha256: adc437085565401e935067062ddfb6d13b423d3820a9f10f01fcb9e64ab09445
+  original:
+    hackage: snap-server-1.1.2.0@sha256:3167b836a0b0ee49c8d6c973535c33f583c9ef9ba62d9723f08509b38368cb8f,14641
 snapshots:
 - completed:
-    size: 492015
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/15/8.yaml
-    sha256: 926bc3d70249dd0ba05277ff00943c0addb35b627cb641752669e7cf771310d0
-  original: lts-15.8
+    size: 619093
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/5.yaml
+    sha256: b936d27d647a31a8834d3efec126e2a07dee9c9bd6dd401d9bdac77e7b278f1e
+  original: lts-19.5
