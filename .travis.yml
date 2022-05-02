@@ -25,7 +25,7 @@ cache:
 
 matrix:
   include:
-    - env: STACKARGS="--resolver=lts-15"
+    - env: STACKARGS="--resolver=lts-19"
     - env: STACKARGS="--resolver=nightly"
   allow_failures:
     - env: STACKARGS="--resolver=nightly"
