@@ -17,3 +17,119 @@ jobs:
             serversession-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
             serversession-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
       - run: stack test serversession:test:tests
+  serversession-backend-acid-state-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: haskell/actions/setup@v2
+        with:
+          enable-stack: true
+      - uses: actions/cache@v3
+        with:
+          path: |
+            .stack-work/
+            ~/.stack/
+          key: serversession-backend-acid-state-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          restore-keys: |
+            serversession-backend-acid-state-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-backend-acid-state-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
+      - run: stack test serversession-backend-acid-state:test:tests
+  serversession-backend-persistent-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:10.20
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v3
+      - uses: haskell/actions/setup@v2
+        with:
+          enable-stack: true
+      - uses: actions/cache@v3
+        with:
+          path: |
+            .stack-work/
+            ~/.stack/
+          key: serversession-backend-persistent-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          restore-keys: |
+            serversession-backend-persistent-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-backend-persistent-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
+      - run: stack test serversession-backend-persistent:test:tests
+  serversession-backend-redis-test:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+      ports:
+        - 6379:6379
+    steps:
+      - uses: actions/checkout@v3
+      - uses: haskell/actions/setup@v2
+        with:
+          enable-stack: true
+      - uses: actions/cache@v3
+        with:
+          path: |
+            .stack-work/
+            ~/.stack/
+          key: serversession-backend-redis-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          restore-keys: |
+            serversession-backend-redis-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-backend-redis-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
+      - run: stack test serversession-backend-redis:test:tests
+  serversession-frontend-wai-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: haskell/actions/setup@v2
+        with:
+          enable-stack: true
+      - uses: actions/cache@v3
+        with:
+          path: |
+            .stack-work/
+            ~/.stack/
+          key: serversession-frontend-wai-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          restore-keys: |
+            serversession-frontend-wai-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-frontend-wai-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
+      - run: stack test serversession-frontend-wai:lib # no test
+  serversession-frontend-yesod-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: haskell/actions/setup@v2
+        with:
+          enable-stack: true
+      - uses: actions/cache@v3
+        with:
+          path: |
+            .stack-work/
+            ~/.stack/
+          key: serversession-frontend-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          restore-keys: |
+            serversession-frontend-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-frontend-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
+      - run: stack test serversession-frontend-yesod:lib # no test
+  serversession-example-yesod-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: haskell/actions/setup@v2
+        with:
+          enable-stack: true
+      - uses: actions/cache@v3
+        with:
+          path: |
+            .stack-work/
+            ~/.stack/
+          key: serversession-example-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          restore-keys: |
+            serversession-example-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-example-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
+      - run: stack test serversession-example-yesod-persistent:test:test
