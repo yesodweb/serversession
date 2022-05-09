@@ -1,5 +1,5 @@
 The maintenance of this package is not active.
-This is because updates to the SNAP itself are no longer active.
+This is because updates to the Snap itself are no longer active.
 
 # serversession-frontend-snap
 
