@@ -8,11 +8,12 @@ jobs:
         with:
           enable-stack: true
       - uses: actions/cache@v3
-        path: |
-          .stack-work/
-          ~/.stack/
-        key: serversession-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
-        restore-keys: |
-          serversession-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
-          serversession-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
+        with:
+          path: |
+            .stack-work/
+            ~/.stack/
+          key: serversession-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          restore-keys: |
+            serversession-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
       - run: stack test serversession:test:tests
