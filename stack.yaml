@@ -1,18 +1,3 @@
-flags:
-  serversession-backend-acid-state:
-    lib-Werror: true
-  serversession-frontend-wai:
-    lib-Werror: true
-  serversession-backend-persistent:
-    lib-Werror: true
-  serversession:
-    lib-Werror: true
-  serversession-backend-redis:
-    lib-Werror: true
-  serversession-frontend-yesod:
-    lib-Werror: true
-  serversession-frontend-snap:
-    lib-Werror: true
 packages:
   - serversession
   - serversession-backend-acid-state
