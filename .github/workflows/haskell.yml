@@ -29,9 +29,9 @@ jobs:
           path: |
             .stack-work/
             ~/.stack/
-          key: serversession-backend-acid-state-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          key: serversession-backend-acid-state-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-backend-acid-state/serversession-backend-acid-state.cabal') }}
           restore-keys: |
-            serversession-backend-acid-state-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-backend-acid-state-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-backend-acid-state/serversession-backend-acid-state.cabal') }}
             serversession-backend-acid-state-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
       - run: stack test serversession-backend-acid-state:test:tests
   serversession-backend-persistent-test:
@@ -55,9 +55,9 @@ jobs:
           path: |
             .stack-work/
             ~/.stack/
-          key: serversession-backend-persistent-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          key: serversession-backend-persistent-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-backend-persistent/serversession-backend-persistent.cabal') }}
           restore-keys: |
-            serversession-backend-persistent-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-backend-persistent-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-backend-persistent/serversession-backend-persistent.cabal') }}
             serversession-backend-persistent-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
       - run: stack test serversession-backend-persistent:test:tests
   serversession-backend-redis-test:
@@ -77,9 +77,9 @@ jobs:
           path: |
             .stack-work/
             ~/.stack/
-          key: serversession-backend-redis-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          key: serversession-backend-redis-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-backend-redis/serversession-backend-redis.cabal') }}
           restore-keys: |
-            serversession-backend-redis-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-backend-redis-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-backend-redis/serversession-backend-redis.cabal') }}
             serversession-backend-redis-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
       - run: stack test serversession-backend-redis:test:tests
   serversession-frontend-wai-test:
@@ -94,9 +94,9 @@ jobs:
           path: |
             .stack-work/
             ~/.stack/
-          key: serversession-frontend-wai-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          key: serversession-frontend-wai-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-frontend-wai/serversession-frontend-wai.cabal') }}
           restore-keys: |
-            serversession-frontend-wai-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-frontend-wai-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-frontend-wai/serversession-frontend-wai.cabal') }}
             serversession-frontend-wai-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
       - run: stack test serversession-frontend-wai:lib # no test
   serversession-frontend-yesod-test:
@@ -111,9 +111,9 @@ jobs:
           path: |
             .stack-work/
             ~/.stack/
-          key: serversession-frontend-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          key: serversession-frontend-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-frontend-yesod/serversession-frontend-yesod.cabal') }}
           restore-keys: |
-            serversession-frontend-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-frontend-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-frontend-yesod/serversession-frontend-yesod.cabal') }}
             serversession-frontend-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
       - run: stack test serversession-frontend-yesod:lib # no test
   serversession-example-yesod-test:
@@ -128,8 +128,8 @@ jobs:
           path: |
             .stack-work/
             ~/.stack/
-          key: serversession-example-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+          key: serversession-example-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('examples/serversession-example-yesod-persistent/serversession-example-yesod-persistent.cabal') }}
           restore-keys: |
-            serversession-example-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
+            serversession-example-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('examples/serversession-example-yesod-persistent/serversession-example-yesod-persistent.cabal') }}
             serversession-example-yesod-test-${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
       - run: stack test serversession-example-yesod-persistent:test:test
