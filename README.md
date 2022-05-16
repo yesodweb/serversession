@@ -1,4 +1,4 @@
-# serversession packages [![Build Status](https://travis-ci.org/yesodweb/serversession.svg?branch=master)](https://travis-ci.org/yesodweb/serversession)
+# serversession packages
 
 Secure, modular server-side sessions.
 
