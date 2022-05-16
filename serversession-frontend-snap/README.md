@@ -1,3 +1,6 @@
+The maintenance of this package is not active.
+This is because updates to the Snap itself are no longer active.
+
 # serversession-frontend-snap
 
 This package provide Snap bindings for the `serversession`
