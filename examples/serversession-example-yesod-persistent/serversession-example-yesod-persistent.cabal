@@ -67,6 +67,7 @@ library
                  , shakespeare                   >= 2.0
                  , hjsmin                        >= 0.1
                  , monad-control                 >= 0.3
+                 , wai
                  , wai-extra                     >= 3.0
                  , yaml                          >= 0.8
                  , http-conduit                  >= 2.1
@@ -140,3 +141,4 @@ test-suite test
                  , hspec >= 2.0.0
                  , classy-prelude
                  , classy-prelude-yesod
+                 , microlens
