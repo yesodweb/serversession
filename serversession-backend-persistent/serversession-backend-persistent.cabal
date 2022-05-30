@@ -50,6 +50,7 @@ library
     OverloadedStrings
     PatternGuards
     QuasiQuotes
+    RankNTypes
     RecordWildCards
     ScopedTypeVariables
     StandaloneDeriving
