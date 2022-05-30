@@ -69,8 +69,8 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
     deriving ( Eq, Ord, Show, Read, PathPiece
              , P.PersistField, P.PersistFieldSql, A.ToJSON, A.FromJSON )
 
-  data EntityField (PersistentSession sess) typ =
-      typ ~ PersistentSessionId sess => PersistentSessionId
+  data EntityField (PersistentSession sess) typ
+    = typ ~ PersistentSessionId sess => PersistentSessionId
     | typ ~ SessionId sess           => PersistentSessionKey
     | typ ~ Maybe ByteStringJ        => PersistentSessionAuthId
     | typ ~ Decomposed sess          => PersistentSessionSession
@@ -85,7 +85,8 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
     = P.EntityDef
     { entityHaskell = P.EntityNameHS "PersistentSession" -- it's dummy.
     , entityDB = P.EntityNameDB "persistent_session"
-    , entityId = P.EntityIdField $ pfd PersistentSessionId
+      -- Since backend is not only persistent, we use the natural key here.
+    , entityId = P.EntityIdNaturalKey $ P.CompositeDef (pure $ pfd PersistentSessionKey) []
     , entityAttrs = ["json"]
     , entityFields =
       [ pfd PersistentSessionKey
@@ -128,47 +129,9 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
   persistUniqueKeys _         = []
 
   persistFieldDef PersistentSessionId
-    = P.FieldDef
-        (P.FieldNameHS "Id")
-        (P.FieldNameDB "id")
-        (P.FTTypeCon
-           Nothing "PersistentSessionId")
-        (P.SqlOther "Composite Reference")
-        []
-        True
-        (P.CompositeRef
-           (P.CompositeDef
-              (pure $ P.FieldDef
-                 (P.FieldNameHS "key")
-                 (P.FieldNameDB "key")
-                 (P.FTTypeCon Nothing "SessionId")
-                 (P.SqlOther "SqlType unset for key")
-                 []
-                 True
-                 P.NoReference
-                 (P.FieldCascade {fcOnUpdate = Nothing, fcOnDelete = Nothing})
-                 Nothing
-                 Nothing
-                 False
-              )
-              []))
-        (P.FieldCascade {fcOnUpdate = Nothing, fcOnDelete = Nothing})
-        Nothing
-        Nothing
-        False
+    = persistFieldDefPersistentSessionKey
   persistFieldDef PersistentSessionKey
-    = P.FieldDef
-        (P.FieldNameHS "key")
-        (P.FieldNameDB "key")
-        (P.FTTypeCon Nothing "SessionId sess")
-        (P.sqlType (Proxy :: Proxy (SessionId sess)))
-        [P.FieldAttrMaxlen 30]
-        True
-        P.NoReference
-        (P.FieldCascade {fcOnUpdate = Nothing, fcOnDelete = Nothing})
-        Nothing
-        Nothing
-        False
+    = persistFieldDefPersistentSessionKey
   persistFieldDef PersistentSessionAuthId
     = P.FieldDef
         (P.FieldNameHS "authId")
@@ -243,6 +206,21 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
     (persistentSessionAccessedAt . P.entityVal)
     (\(P.Entity k v) x -> P.Entity k (v {persistentSessionAccessedAt = x}))
 
+-- | To avoid type argument mismatch, the definition is spit out and finalized.
+persistFieldDefPersistentSessionKey :: P.FieldDef
+persistFieldDefPersistentSessionKey =
+  P.FieldDef
+  (P.FieldNameHS "key")
+  (P.FieldNameDB "key")
+  (P.FTTypeCon Nothing "SessionId sess")
+  (P.sqlType (Proxy :: Proxy (SessionId sess)))
+  [P.FieldAttrMaxlen 30]
+  True
+  P.NoReference
+  (P.FieldCascade {fcOnUpdate = Nothing, fcOnDelete = Nothing})
+  Nothing
+  Nothing
+  False
 
 -- | Copy-paste from @Database.Persist.TH@.  Who needs lens anyway...
 lensPTH :: Functor f => (s -> a) -> (s -> b -> t) -> (a -> f b) -> s -> f t
