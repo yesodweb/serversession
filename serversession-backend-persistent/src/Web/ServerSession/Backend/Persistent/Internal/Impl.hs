@@ -264,10 +264,10 @@ type PersistentSessionBySessionMap = PersistentSession SessionMap
 -- Example:
 --
 -- @
--- mkMigrate "migrateAll" serverSessionDefsBySessionMap
+-- mkMigrate \"migrateAll\" serverSessionDefsBySessionMap
 -- @
 --
--- Note: Also import PersistentSessionBySessionMap in the same module.
+-- Note: Also import `PersistentSessionBySessionMap` in the same module.
 serverSessionDefsBySessionMap :: [P.UnboundEntityDef]
 serverSessionDefsBySessionMap = mkServerSessionDefs (Proxy :: Proxy PersistentSessionBySessionMap) "PersistentSessionBySessionMap"
 
@@ -278,7 +278,7 @@ serverSessionDefsBySessionMap = mkServerSessionDefs (Proxy :: Proxy PersistentSe
 --
 -- @
 -- type PersistentSessionBySessionMap = PersistentSession SessionMap
--- mkMigrate "migrateAll" (mkServerSessionDefs (Proxy :: Proxy PersistentSessionBySessionMap) "PersistentSessionBySessionMap")
+-- mkMigrate \"migrateAll\" (mkServerSessionDefs (Proxy :: Proxy PersistentSessionBySessionMap) \"PersistentSessionBySessionMap\")
 -- @
 mkServerSessionDefs :: forall sess. PersistEntity sess => Proxy sess -> T.Text -> [P.UnboundEntityDef]
 mkServerSessionDefs _ name =

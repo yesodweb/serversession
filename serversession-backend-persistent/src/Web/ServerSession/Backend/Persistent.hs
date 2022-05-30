@@ -24,7 +24,7 @@
 -- -- On Application.hs
 -- import Web.ServerSession.Backend.Persistent
 --
--- mkMigrate \"migrateAll\" (entityDefs `embedEntityDefs` serverSessionDefsBySessionMap)
+-- mkMigrate \"migrateAll\" (entityDefs \`embedEntityDefs\` serverSessionDefsBySessionMap)
 --
 -- makeFoundation =
 --     ...
