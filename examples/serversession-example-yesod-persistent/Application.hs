@@ -30,9 +30,7 @@ import Network.Wai.Middleware.RequestLogger (Destination (Logger),
 import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
                                              toLogStr)
 
-import qualified Data.Proxy as P
-import qualified Web.ServerSession.Core as SS
-import qualified Web.ServerSession.Backend.Persistent as SS
+import Web.ServerSession.Backend.Persistent
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
@@ -47,7 +45,7 @@ mkYesodDispatch "App" resourcesApp
 
 -- Create migration function using both our entities and
 -- serversession-backend-persistent ones.
-mkMigrate "migrateAll" (SS.serverSessionDefs (P.Proxy :: P.Proxy SS.SessionMap) ++ entityDefs)
+mkMigrate "migrateAll" (entityDefs `embedEntityDefs` serverSessionDefsBySessionMap)
 
 
 -- | This function allocates resources (such as a database connection pool),
