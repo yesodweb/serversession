@@ -26,7 +26,7 @@
 -- import qualified Web.ServerSession.Core as SS
 -- import qualified Web.ServerSession.Backend.Persistent as SS
 --
--- mkMigrate \"migrateAll\" (SS.serverSessionDefs (P.Proxy :: P.Proxy SS.SessionMap) ++ entityDefs)
+-- mkMigrate \"migrateAll\" (SS.serverSessionDefsBySessionMap ++ entityDefs)
 --
 -- makeFoundation =
 --     ...
@@ -34,7 +34,7 @@
 --     ...
 -- @
 --
--- If you're not using @SessionMap@, just change @Proxy@ type above.
+-- If you're not using @SessionMap@, just use 'mkServerSessionDefs' and change @Proxy@ type above.
 --
 -- If you forget to setup the migration above, this session
 -- storage backend will fail at runtime as the required table
@@ -43,6 +43,8 @@ module Web.ServerSession.Backend.Persistent
   ( SqlStorage(..)
   , PersistentSession(..)
   , PersistentSessionId
+  , serverSessionDefsBySessionMap
+  , PersistentSessionBySessionMap
   , mkServerSessionDefs
   ) where
 

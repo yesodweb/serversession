@@ -4,6 +4,8 @@ module Web.ServerSession.Backend.Persistent.Internal.Impl
   ( PersistentSession(..)
   , PersistentSessionId
   , EntityField(..)
+  , serverSessionDefsBySessionMap
+  , PersistentSessionBySessionMap
   , mkServerSessionDefs
   , psKey
   , toPersistentSession
@@ -256,16 +258,32 @@ instance ( A.FromJSON (Decomposed sess)
          ) => A.FromJSON (P.Entity (PersistentSession sess)) where
   parseJSON = P.entityIdFromJSON
 
+type PersistentSessionBySessionMap = PersistentSession SessionMap
 
--- | Entity definitions needed to generate the SQL schema for
--- 'SqlStorage'.  Example using 'SessionMap':
+-- | Simple version.
+-- Entity definitions needed to generate the SQL schema for 'SqlStorage'.
+-- Example:
+--
+-- @
+-- mkMigrate "migrateAll" serverSessionDefsBySessionMap
+-- @
+--
+-- Note: Also import PersistentSessionBySessionMap in the same module.
+serverSessionDefsBySessionMap :: [P.UnboundEntityDef]
+serverSessionDefsBySessionMap = mkServerSessionDefs (Proxy :: Proxy PersistentSessionBySessionMap) "PersistentSessionBySessionMap"
+
+-- | Entity definitions needed to generate the SQL schema for 'SqlStorage'.
+-- Generate schema by specifying Haskell name in Text.
+--
+-- Example using 'SessionMap':
 --
 -- @
 -- type PersistentSessionBySessionMap = PersistentSession SessionMap
--- P.mkMigrate "migrateAll" (mkServerSessionDefs (Proxy :: Proxy PersistentSessionBySessionMap) "PersistentSessionBySessionMap")
+-- mkMigrate "migrateAll" (mkServerSessionDefs (Proxy :: Proxy PersistentSessionBySessionMap) "PersistentSessionBySessionMap")
 -- @
 mkServerSessionDefs :: forall sess. PersistEntity sess => Proxy sess -> T.Text -> [P.UnboundEntityDef]
 mkServerSessionDefs _ name =
+  -- The name of a variable of type sess is no longer taken into account, so it is now necessary to pass it by Text.
   [P.unbindEntityDef $ (entityDef (Proxy :: Proxy sess)) { P.entityHaskell = P.EntityNameHS name }]
 
 -- | Generate a key to the entity from the session ID.
