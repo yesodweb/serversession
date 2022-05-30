@@ -29,11 +29,10 @@ import qualified Data.Aeson as A
 import qualified Data.Text as T
 import qualified Database.Persist as P
 import qualified Database.Persist.EntityDef.Internal as P (EntityDef(..)) -- I need EntityDef constructor.
-import qualified Database.Persist.Quasi.Internal as P
+import qualified Database.Persist.Quasi.Internal as P (UnboundEntityDef, unbindEntityDef)
 import qualified Database.Persist.Sql as P
 
 import Web.ServerSession.Backend.Persistent.Internal.Types
-
 
 -- We can't use the Template Haskell since we want to generalize
 -- some fields.
