@@ -6,7 +6,8 @@ module TestImport
 import Application           (makeFoundation)
 import ClassyPrelude         as X
 import Database.Persist      as X hiding (delete, deleteBy, get)
-import Database.Persist.Sql  (SqlPersistM, SqlBackend, runSqlPersistMPool, rawExecute, rawSql, unSingle, connEscapeName)
+import Database.Persist.Sql  (SqlPersistM, SqlBackend, runSqlPersistMPool, rawExecute, rawSql, unSingle)
+import Database.Persist.Sql.Types.Internal (connEscapeRawName)
 import Foundation            as X hiding (Handler)
 import Import.NoFoundation   (loadYamlSettings)
 import Model                 as X
@@ -59,7 +60,7 @@ wipeDB app = do
     flip runSqlPersistMPool pool $ do
         tables <- getTables
         sqlBackend <- ask
-        let queries = map (\t -> "DELETE FROM " ++ (connEscapeName sqlBackend $ DBName t)) tables
+        let queries = map (\t -> "DELETE FROM " ++ (connEscapeRawName sqlBackend t)) tables
         forM_ queries (\q -> rawExecute q [])
 
 rawConnection :: Text -> IO Sqlite.Connection
