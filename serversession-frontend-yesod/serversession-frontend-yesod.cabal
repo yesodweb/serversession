@@ -4,7 +4,7 @@ version:         1.0
 license:         MIT
 license-file:    LICENSE
 author:          Felipe Lessa <felipe.lessa@gmail.com>
-maintainer:      Michael Xavier <michael@michaelxavier.net>
+maintainer:      Michael Xavier <michael@michaelxavier.net>, ncaq <ncaq@ncaq.net>
 synopsis:        Yesod bindings for serversession.
 category:        Web
 stability:       Stable
