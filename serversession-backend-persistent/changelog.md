@@ -1,3 +1,7 @@
+# 2.0.0
+
+## bump persistent to 2.13
+
 I had no choice but to delete `serverSessionDefs` to match persistent updates.
 If you are using it as Example, please use `serverSessionDefsBySessionMap`.
 If you are customizing in detail, please use `mkServerSessionDefs` as hard as you can.

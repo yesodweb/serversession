@@ -1,6 +1,6 @@
 cabal-version:   >= 1.10
 name:            serversession-backend-persistent
-version:         1.0.5
+version:         2.0.0
 license:         MIT
 license-file:    LICENSE
 author:          Felipe Lessa <felipe.lessa@gmail.com>
