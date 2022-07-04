@@ -4,7 +4,7 @@ version:         2.0.0
 license:         MIT
 license-file:    LICENSE
 author:          Felipe Lessa <felipe.lessa@gmail.com>
-maintainer:      Michael Xavier <michael@michaelxavier.net>
+maintainer:      Michael Xavier <michael@michaelxavier.net>, ncaq <ncaq@ncaq.net>
 synopsis:        Storage backend for serversession using persistent and an RDBMS.
 category:        Web
 stability:       Stable
