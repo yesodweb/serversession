@@ -15,6 +15,7 @@ import Control.Monad (guard)
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.ByteString (ByteString)
 import Data.Default (def)
+import Data.Kind (Type)
 import Data.Text (Text)
 import Web.PathPieces (toPathPiece)
 import Web.ServerSession.Core
@@ -91,8 +92,8 @@ mkSession sessionRef =
 -- | Class for session data types that can be used as key-value
 -- stores.
 class IsSessionData sess => KeyValue sess where
-  type Key   sess :: *
-  type Value sess :: *
+  type Key   sess :: Type
+  type Value sess :: Type
   kvLookup :: Key sess -> sess -> Maybe (Value sess)
   kvInsert :: Key sess -> Value sess -> sess -> sess
 

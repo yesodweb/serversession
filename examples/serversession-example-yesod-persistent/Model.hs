@@ -1,4 +1,6 @@
+{-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE DerivingStrategies   #-}
+{-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE StandaloneDeriving   #-}
 {-# LANGUAGE UndecidableInstances #-}
 module Model where
@@ -10,5 +12,5 @@ import Database.Persist.Quasi
 -- You can find more information on persistent and how to declare entities
 -- at:
 -- http://www.yesodweb.com/book/persistent/
-share [mkPersist sqlSettings, mkSave "entityDefs"]
+share [mkPersist sqlSettings, mkEntityDefList "entityDefs"]
     $(persistFileWith lowerCaseSettings "config/models")

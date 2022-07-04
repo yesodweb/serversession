@@ -22,11 +22,9 @@
 -- share [mkPersist sqlSettings, mkSave \"entityDefs\"]
 --
 -- -- On Application.hs
--- import qualified Data.Proxy as P -- tagged package, or base from GHC 7.10 onwards
--- import qualified Web.ServerSession.Core as SS
--- import qualified Web.ServerSession.Backend.Persistent as SS
+-- import Web.ServerSession.Backend.Persistent
 --
--- mkMigrate \"migrateAll\" (SS.serverSessionDefs (P.Proxy :: P.Proxy SS.SessionMap) ++ entityDefs)
+-- mkMigrate \"migrateAll\" (entityDefs \`embedEntityDefs\` serverSessionDefsBySessionMap)
 --
 -- makeFoundation =
 --     ...
@@ -34,14 +32,18 @@
 --     ...
 -- @
 --
--- If you're not using @SessionMap@, just change @Proxy@ type above.
+-- If you're not using @SessionMap@, just use 'mkServerSessionDefs' and change @Proxy@ type above.
 --
 -- If you forget to setup the migration above, this session
 -- storage backend will fail at runtime as the required table
 -- will not exist.
 module Web.ServerSession.Backend.Persistent
   ( SqlStorage(..)
-  , serverSessionDefs
+  , PersistentSession(..)
+  , PersistentSessionId
+  , serverSessionDefsBySessionMap
+  , PersistentSessionBySessionMap
+  , mkServerSessionDefs
   ) where
 
 import Web.ServerSession.Backend.Persistent.Internal.Impl

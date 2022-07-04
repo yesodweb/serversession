@@ -1,6 +1,6 @@
 cabal-version:   >= 1.10
 name:            serversession-backend-persistent
-version:         1.0.5
+version:         2.0.0
 license:         MIT
 license-file:    LICENSE
 author:          Felipe Lessa <felipe.lessa@gmail.com>
@@ -24,11 +24,11 @@ library
   build-depends:
       base                      == 4.*
     , aeson
-    , base64-bytestring         == 1.0.*
+    , base64-bytestring         == 1.2.*
     , bytestring
     , cereal                    >= 0.4
     , path-pieces
-    , persistent                >= 2.10
+    , persistent                >= 2.13
     , tagged                    >= 0.7
     , text
     , time
@@ -50,6 +50,7 @@ library
     OverloadedStrings
     PatternGuards
     QuasiQuotes
+    RankNTypes
     RecordWildCards
     ScopedTypeVariables
     StandaloneDeriving

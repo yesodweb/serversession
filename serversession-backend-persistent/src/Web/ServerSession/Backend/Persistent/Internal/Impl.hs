@@ -4,7 +4,9 @@ module Web.ServerSession.Backend.Persistent.Internal.Impl
   ( PersistentSession(..)
   , PersistentSessionId
   , EntityField(..)
-  , serverSessionDefs
+  , serverSessionDefsBySessionMap
+  , PersistentSessionBySessionMap
+  , mkServerSessionDefs
   , psKey
   , toPersistentSession
   , fromPersistentSession
@@ -15,7 +17,6 @@ module Web.ServerSession.Backend.Persistent.Internal.Impl
 import Control.Applicative as A
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
-import Data.Monoid as M
 import Data.Proxy (Proxy(..))
 import Data.Time (UTCTime)
 import Data.Typeable (Typeable)
@@ -27,10 +28,11 @@ import qualified Control.Exception as E
 import qualified Data.Aeson as A
 import qualified Data.Text as T
 import qualified Database.Persist as P
+import qualified Database.Persist.EntityDef.Internal as P (EntityDef(..)) -- I need EntityDef constructor.
+import qualified Database.Persist.Quasi.Internal as P (UnboundEntityDef, unbindEntityDef)
 import qualified Database.Persist.Sql as P
 
 import Web.ServerSession.Backend.Persistent.Internal.Types
-
 
 -- We can't use the Template Haskell since we want to generalize
 -- some fields.
@@ -68,8 +70,8 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
     deriving ( Eq, Ord, Show, Read, PathPiece
              , P.PersistField, P.PersistFieldSql, A.ToJSON, A.FromJSON )
 
-  data EntityField (PersistentSession sess) typ =
-      typ ~ PersistentSessionId sess => PersistentSessionId
+  data EntityField (PersistentSession sess) typ
+    = typ ~ PersistentSessionId sess => PersistentSessionId
     | typ ~ SessionId sess           => PersistentSessionKey
     | typ ~ Maybe ByteStringJ        => PersistentSessionAuthId
     | typ ~ Decomposed sess          => PersistentSessionSession
@@ -82,24 +84,26 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
 
   entityDef _
     = P.EntityDef
-        (P.HaskellName "PersistentSession")
-        (P.DBName "persistent_session")
-        (pfd PersistentSessionId)
-        ["json"]
-        [ pfd PersistentSessionKey
-        , pfd PersistentSessionAuthId
-        , pfd PersistentSessionSession
-        , pfd PersistentSessionCreatedAt
-        , pfd PersistentSessionAccessedAt ]
-        []
-        []
-        ["Eq", "Ord", "Show", "Typeable"]
-        M.mempty
-        False
-        Nothing
-    where
-      pfd :: P.EntityField (PersistentSession sess) typ -> P.FieldDef
-      pfd = P.persistFieldDef
+    { entityHaskell = P.EntityNameHS "PersistentSession" -- it's dummy.
+    , entityDB = P.EntityNameDB "persistent_session"
+      -- Since backend is not only persistent, we use the natural key here.
+    , entityId = P.EntityIdNaturalKey $ P.CompositeDef (pure $ pfd PersistentSessionKey) []
+    , entityAttrs = ["json"]
+    , entityFields =
+      [ pfd PersistentSessionKey
+      , pfd PersistentSessionAuthId
+      , pfd PersistentSessionSession
+      , pfd PersistentSessionCreatedAt
+      , pfd PersistentSessionAccessedAt ]
+    , entityUniques = []
+    , entityForeigns = []
+    , entityDerives = ["Eq", "Ord", "Show", "Typeable"]
+    , entityExtra = mempty
+    , entitySum = False
+    , entityComments = Nothing
+    }
+    where pfd :: P.EntityField (PersistentSession sess) typ -> P.FieldDef
+          pfd = P.persistFieldDef
 
   toPersistFields (PersistentSession a b c d e) =
     [ P.SomePersistField a
@@ -126,77 +130,61 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
   persistUniqueKeys _         = []
 
   persistFieldDef PersistentSessionId
-    = P.FieldDef
-        (P.HaskellName "Id")
-        (P.DBName "id")
-        (P.FTTypeCon
-           Nothing "PersistentSessionId")
-        (P.SqlOther "Composite Reference")
-        []
-        True
-        (P.CompositeRef
-           (P.CompositeDef
-              [P.FieldDef
-                 (P.HaskellName "key")
-                 (P.DBName "key")
-                 (P.FTTypeCon Nothing "SessionId")
-                 (P.SqlOther "SqlType unset for key")
-                 []
-                 True
-                 P.NoReference
-                 Nothing]
-              []))
-        Nothing
+    = persistFieldDefPersistentSessionKey
   persistFieldDef PersistentSessionKey
-    = P.FieldDef
-        (P.HaskellName "key")
-        (P.DBName "key")
-        (P.FTTypeCon Nothing "SessionId sess")
-        (P.sqlType (Proxy :: Proxy (SessionId sess)))
-        ["maxlen=30"]
-        True
-        P.NoReference
-        Nothing
+    = persistFieldDefPersistentSessionKey
   persistFieldDef PersistentSessionAuthId
     = P.FieldDef
-        (P.HaskellName "authId")
-        (P.DBName "auth_id")
+        (P.FieldNameHS "authId")
+        (P.FieldNameDB "auth_id")
         (P.FTTypeCon Nothing "ByteStringJ")
         (P.sqlType (Proxy :: Proxy ByteStringJ))
-        ["Maybe", "default=NULL"]
+        [P.FieldAttrMaybe, P.FieldAttrDefault "NULL"]
         True
         P.NoReference
+        (P.FieldCascade {fcOnUpdate = Nothing, fcOnDelete = Nothing})
         Nothing
+        Nothing
+        False
   persistFieldDef PersistentSessionSession
     = P.FieldDef
-        (P.HaskellName "session")
-        (P.DBName "session")
+        (P.FieldNameHS "session")
+        (P.FieldNameDB "session")
         (P.FTTypeCon Nothing "Decomposed sess")
         (P.sqlType (Proxy :: Proxy (Decomposed sess))) -- Important!
         []
         True
         P.NoReference
+        (P.FieldCascade {fcOnUpdate = Nothing, fcOnDelete = Nothing})
         Nothing
+        Nothing
+        False
   persistFieldDef PersistentSessionCreatedAt
     = P.FieldDef
-        (P.HaskellName "createdAt")
-        (P.DBName "created_at")
+        (P.FieldNameHS "createdAt")
+        (P.FieldNameDB "created_at")
         (P.FTTypeCon Nothing "UTCTime")
         (P.sqlType (Proxy :: Proxy UTCTime))
         []
         True
         P.NoReference
+        (P.FieldCascade {fcOnUpdate = Nothing, fcOnDelete = Nothing})
         Nothing
+        Nothing
+        False
   persistFieldDef PersistentSessionAccessedAt
     = P.FieldDef
-        (P.HaskellName "accessedAt")
-        (P.DBName "accessed_at")
+        (P.FieldNameHS "accessedAt")
+        (P.FieldNameDB "accessed_at")
         (P.FTTypeCon Nothing "UTCTime")
         (P.sqlType (Proxy :: Proxy UTCTime))
         []
         True
         P.NoReference
+        (P.FieldCascade {fcOnUpdate = Nothing, fcOnDelete = Nothing})
         Nothing
+        Nothing
+        False
 
   persistIdField = PersistentSessionId
 
@@ -219,6 +207,21 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
     (persistentSessionAccessedAt . P.entityVal)
     (\(P.Entity k v) x -> P.Entity k (v {persistentSessionAccessedAt = x}))
 
+-- | To avoid type argument mismatch, the definition is spit out and finalized.
+persistFieldDefPersistentSessionKey :: P.FieldDef
+persistFieldDefPersistentSessionKey =
+  P.FieldDef
+  (P.FieldNameHS "key")
+  (P.FieldNameDB "key")
+  (P.FTTypeCon Nothing "SessionId sess")
+  (P.sqlType (Proxy :: Proxy (SessionId sess)))
+  [P.FieldAttrMaxlen 30]
+  True
+  P.NoReference
+  (P.FieldCascade {fcOnUpdate = Nothing, fcOnDelete = Nothing})
+  Nothing
+  Nothing
+  False
 
 -- | Copy-paste from @Database.Persist.TH@.  Who needs lens anyway...
 lensPTH :: Functor f => (s -> a) -> (s -> b -> t) -> (a -> f b) -> s -> f t
@@ -254,16 +257,33 @@ instance ( A.FromJSON (Decomposed sess)
          ) => A.FromJSON (P.Entity (PersistentSession sess)) where
   parseJSON = P.entityIdFromJSON
 
+type PersistentSessionBySessionMap = PersistentSession SessionMap
 
--- | Entity definitions needed to generate the SQL schema for
--- 'SqlStorage'.  Example using 'SessionMap':
+-- | Simple version.
+-- Entity definitions needed to generate the SQL schema for 'SqlStorage'.
+-- Example:
 --
 -- @
--- serverSessionDefs (Proxy :: Proxy SessionMap)
+-- mkMigrate \"migrateAll\" serverSessionDefsBySessionMap
 -- @
-serverSessionDefs :: forall sess. PersistEntity (PersistentSession sess) => Proxy sess -> [P.EntityDef]
-serverSessionDefs _ = [entityDef (Proxy :: Proxy (PersistentSession sess))]
+--
+-- Note: Also import `PersistentSessionBySessionMap` in the same module.
+serverSessionDefsBySessionMap :: [P.UnboundEntityDef]
+serverSessionDefsBySessionMap = mkServerSessionDefs (Proxy :: Proxy PersistentSessionBySessionMap) "PersistentSessionBySessionMap"
 
+-- | Entity definitions needed to generate the SQL schema for 'SqlStorage'.
+-- Generate schema by specifying Haskell name in Text.
+--
+-- Example using 'SessionMap':
+--
+-- @
+-- type PersistentSessionBySessionMap = PersistentSession SessionMap
+-- mkMigrate \"migrateAll\" (mkServerSessionDefs (Proxy :: Proxy PersistentSessionBySessionMap) \"PersistentSessionBySessionMap\")
+-- @
+mkServerSessionDefs :: forall sess. PersistEntity sess => Proxy sess -> T.Text -> [P.UnboundEntityDef]
+mkServerSessionDefs _ name =
+  -- The name of a variable of type sess is no longer taken into account, so it is now necessary to pass it by Text.
+  [P.unbindEntityDef $ (entityDef (Proxy :: Proxy sess)) { P.entityHaskell = P.EntityNameHS name }]
 
 -- | Generate a key to the entity from the session ID.
 psKey :: SessionId sess -> Key (PersistentSession sess)

@@ -3,15 +3,7 @@ packages:
   - serversession-backend-acid-state
   - serversession-backend-persistent
   - serversession-backend-redis
-  - serversession-frontend-snap
   - serversession-frontend-wai
   - serversession-frontend-yesod
   - examples/serversession-example-yesod-persistent
-extra-deps:
-  - snap-1.1.3.0@sha256:0c0814d2ab1c3d5f22cef4615b2913ded18e87710ea6febdbe6e3ab8d9838735,8872
-  - acid-state-0.16.0@sha256:a5640fd8d99bdb5f152476a2ae56cc8eb81864b280c8ec7d1387e81296ed844d,6190
-  - heist-1.1.0.1@sha256:7355cf8c1a7ef84c0c800c0539f7b99e7e540cace697238009a2dea1f05231f1,9311
-  - map-syntax-0.3@sha256:ca8b449615fa57419c16a5e98844624a6ac758692b87b3cfae8c74c87c56f1b2,2420
-  - pwstore-fast-2.4.4@sha256:9b6a37510d8b9f37f409a8ab3babac9181afcaaa3fce8ba1c131a7ed3de30698,1351
-  - xmlhtml-0.2.5.2@sha256:3f0990f725551985d777e8edb5563fe99aee998f1fde6a7633f720f76df54701,46997
-resolver: lts-15.8
+resolver: lts-19.5

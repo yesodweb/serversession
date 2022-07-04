@@ -60,13 +60,14 @@ library
                  , classy-prelude-yesod          >= 0.10.2
                  , bytestring                    >= 0.9
                  , text                          >= 0.11
-                 , persistent                    >= 2.0
+                 , persistent                    >= 2.13
                  , persistent-sqlite             >= 2.1.1
                  , persistent-template           >= 2.0
                  , template-haskell
                  , shakespeare                   >= 2.0
                  , hjsmin                        >= 0.1
                  , monad-control                 >= 0.3
+                 , wai
                  , wai-extra                     >= 3.0
                  , yaml                          >= 0.8
                  , http-conduit                  >= 2.1
@@ -88,7 +89,7 @@ library
                  , tagged
                  , serversession                    == 1.0.*
                  , serversession-frontend-yesod     == 1.0.*
-                 , serversession-backend-persistent == 1.0.*
+                 , serversession-backend-persistent == 2.0.*
 
 executable         serversession-example-yesod-persistent
     if flag(library-only)
@@ -140,3 +141,4 @@ test-suite test
                  , hspec >= 2.0.0
                  , classy-prelude
                  , classy-prelude-yesod
+                 , microlens

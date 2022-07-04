@@ -1,6 +1,6 @@
 cabal-version:   >= 1.10
 name:            serversession-backend-redis
-version:         1.0.4
+version:         1.0.5
 license:         MIT
 license-file:    LICENSE
 author:          Felipe Lessa <felipe.lessa@gmail.com>
@@ -28,7 +28,7 @@ library
   build-depends:
       base                      == 4.*
     , bytestring
-    , hedis                     < 0.13
+    , hedis                     == 0.15.*
     , path-pieces
     , tagged                    >= 0.7
     , text

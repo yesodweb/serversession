@@ -40,12 +40,6 @@ companion packages:
       Support for the Yesod framework.  Replaces the default
       `clientsession`.
 
-    * `serversession-frontend-snap`
-      ([![Hackage](https://img.shields.io/hackage/v/serversession-frontend-snap.svg)](https://hackage.haskell.org/package/serversession-frontend-snap)):
-      Support for the Snap framework.  Replaces the default
-      `Snap.Snaplet.Session.Backends.CookieSession` based on
-      `clientsession`.
-
     * `serversession-frontend-wai`
       ([![Hackage](https://img.shields.io/hackage/v/serversession-frontend-wai.svg)](https://hackage.haskell.org/package/serversession-frontend-wai)):
       Generic support for WAI applications via the `wai-session`
