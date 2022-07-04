@@ -89,7 +89,7 @@ library
                  , tagged
                  , serversession                    == 1.0.*
                  , serversession-frontend-yesod     == 1.0.*
-                 , serversession-backend-persistent == 1.0.*
+                 , serversession-backend-persistent == 2.0.*
 
 executable         serversession-example-yesod-persistent
     if flag(library-only)
