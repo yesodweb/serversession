@@ -1,3 +1,5 @@
+# 2.0.1
+
 I limit `persistent` version to `2.13.*`
 
 # 2.0.0
