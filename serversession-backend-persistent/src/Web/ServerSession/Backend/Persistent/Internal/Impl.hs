@@ -114,7 +114,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
 
   fromPersistValues [a, b, c, d, e] =
     PersistentSession
-      A.<$> err "key"        (P.fromPersistValue a)
+      A.<$> err "key"      (P.fromPersistValue a)
       <*> err "authId"     (P.fromPersistValue b)
       <*> err "session"    (P.fromPersistValue c)
       <*> err "createdAt"  (P.fromPersistValue d)
