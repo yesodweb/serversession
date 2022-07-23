@@ -1,3 +1,5 @@
+I limit `persistent` version to `2.13.*`
+
 # 2.0.0
 
 ## bump persistent to 2.13

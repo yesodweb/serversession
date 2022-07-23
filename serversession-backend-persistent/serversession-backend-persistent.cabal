@@ -28,7 +28,7 @@ library
     , bytestring
     , cereal                    >= 0.4
     , path-pieces
-    , persistent                >= 2.13
+    , persistent                == 2.13.*
     , tagged                    >= 0.7
     , text
     , time
