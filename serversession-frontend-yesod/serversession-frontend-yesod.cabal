@@ -1,6 +1,6 @@
 cabal-version:   >= 1.10
 name:            serversession-frontend-yesod
-version:         1.0
+version:         1.0.1
 license:         MIT
 license-file:    LICENSE
 author:          Felipe Lessa <felipe.lessa@gmail.com>
@@ -33,7 +33,7 @@ library
     , transformers
     , unordered-containers
     , wai
-    , yesod-core                >= 1.6
+    , yesod-core                == 1.6.*
 
     , serversession             == 1.0.*
   exposed-modules:
