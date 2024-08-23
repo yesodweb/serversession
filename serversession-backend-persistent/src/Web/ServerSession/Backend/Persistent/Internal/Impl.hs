@@ -110,15 +110,14 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
     where pfd :: P.EntityField (PersistentSession sess) typ -> P.FieldDef
           pfd = P.persistFieldDef
 
-#if MIN_VERSION_persistent(2,14,0)
   toPersistFields (PersistentSession a b c d e) =
+#if MIN_VERSION_persistent(2,14,0)
     [ P.toPersistValue a
     , P.toPersistValue b
     , P.toPersistValue c
     , P.toPersistValue d
     , P.toPersistValue e ]
 #else
-  toPersistValues (PersistentSession a b c d e) =
     [ P.SomePersistField a
     , P.SomePersistField b
     , P.SomePersistField c
