@@ -1,3 +1,7 @@
+# 2.0.2
+
+I allow `persistent >= 2.13.0.0 && < 2.15.0.0`.
+
 # 2.0.1
 
 I limit `persistent` version to `2.13.*`
