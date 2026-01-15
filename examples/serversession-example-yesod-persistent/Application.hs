@@ -1,5 +1,5 @@
 -- https://ghc.haskell.org/trac/ghc/ticket/12130#comment:9
-{-# LANGUAGE NoDisambiguateRecordFields, NoRecordWildCards #-}
+{-# LANGUAGE TypeApplications, RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Application
     ( getApplicationDev
@@ -17,7 +17,7 @@ module Application
 
 import Control.Monad.Logger                 (liftLoc, runLoggingT)
 import Database.Persist.Sqlite              (createSqlitePool, runSqlPool,
-                                             sqlDatabase, sqlPoolSize)
+                                             sqlDatabase, sqlPoolSize, Migration)
 import Import
 import Language.Haskell.TH.Syntax           (qLocation)
 import Network.Wai (Middleware)
@@ -38,17 +38,17 @@ import Web.ServerSession.Backend.Persistent
 -- Don't forget to add new modules to your cabal file!
 import Handler.Common
 import Handler.Home
+import Data.Proxy as P
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
 -- comments there for more details.
 mkYesodDispatch "App" resourcesApp
 
-
 -- Create migration function using both our entities and
 -- serversession-backend-persistent ones.
-mkMigrate "migrateAll" (entityDefs `embedEntityDefs` serverSessionDefsBySessionMap)
-
+migrateAll :: Migration
+migrateAll = migrateModels (entityDef (P.Proxy @PersistentSessionBySessionMap) : entityDefs)
 
 -- | This function allocates resources (such as a database connection pool),
 -- performs initialization and return a foundation datatype value. This is also
@@ -69,7 +69,7 @@ makeFoundation appSettings = do
     -- logging function. To get out of this loop, we initially create a
     -- temporary foundation without a real connection pool, get a log function
     -- from there, and then create the real foundation.
-    let mkFoundation appConnPool = App appSettings appStatic appConnPool appHttpManager appLogger
+    let mkFoundation appConnPool = App {..}
         tempFoundation = mkFoundation $ error "connPool forced in tempFoundation"
         logFunc = messageLoggerSource tempFoundation appLogger
 
@@ -182,5 +182,5 @@ handler :: Handler a -> IO a
 handler h = getAppSettings >>= makeFoundation >>= flip unsafeHandler h
 
 -- | Run DB queries
-db :: ReaderT SqlBackend (HandlerT App IO) a -> IO a
+db :: ReaderT SqlBackend (HandlerFor App) a -> IO a
 db = handler . runDB

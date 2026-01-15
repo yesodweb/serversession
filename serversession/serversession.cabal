@@ -67,6 +67,7 @@ test-suite tests
     , hspec                     >= 2.1 && < 3
     , QuickCheck
     , serversession
+    , persistent-sqlite
   default-extensions:
     DeriveDataTypeable
     FlexibleContexts

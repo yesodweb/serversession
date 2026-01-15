@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications #-}
+
 module Main (main) where
 
 import Control.Monad (forM_)
@@ -8,11 +10,14 @@ import Database.Persist.Sqlite (createSqlitePool)
 import Test.Hspec
 import Web.ServerSession.Backend.Persistent
 import Web.ServerSession.Core.StorageTests
+import Database.Persist.Sql.Migration (Migration)
+import Data.Proxy (Proxy(..))
+import Database.Persist.TH (migrateModels)
 
-import qualified Database.Persist.TH as P
 import qualified Database.Persist.Sql as P
 
-P.mkMigrate "migrateAll" serverSessionDefsBySessionMap
+migrateAll :: Migration
+migrateAll = migrateModels $ [(P.entityDef (Proxy @PersistentSessionBySessionMap))]
 
 main :: IO ()
 main = hspec $

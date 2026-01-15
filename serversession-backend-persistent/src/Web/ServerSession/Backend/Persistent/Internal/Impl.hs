@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, TypeOperators #-}
 -- | Internal module exposing the guts of the package.  Use at
 -- your own risk.  No API stability guarantees apply.
 module Web.ServerSession.Backend.Persistent.Internal.Impl
@@ -106,6 +106,7 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
     , entityExtra = mempty
     , entitySum = False
     , entityComments = Nothing
+    , entitySpan = Nothing
     }
     where pfd :: P.EntityField (PersistentSession sess) typ -> P.FieldDef
           pfd = P.persistFieldDef

@@ -22,9 +22,12 @@
 -- share [mkPersist sqlSettings, mkSave \"entityDefs\"]
 --
 -- -- On Application.hs
+-- {-# LANGUAGE TypeApplications #-}
 -- import Web.ServerSession.Backend.Persistent
+-- import Database.Persist.Sql.Migration(Migration)
 --
--- mkMigrate \"migrateAll\" (entityDefs \`embedEntityDefs\` serverSessionDefsBySessionMap)
+-- migrateAll :: Migration
+-- migrateAll = migrateModels (entityDef (Proxy @PersistentSessionBySessionMap) : entityDefs)
 --
 -- makeFoundation =
 --     ...

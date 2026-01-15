@@ -6,4 +6,4 @@ packages:
   - serversession-frontend-wai
   - serversession-frontend-yesod
   - examples/serversession-example-yesod-persistent
-resolver: lts-19.5
+resolver: lts-24.11
