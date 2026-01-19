@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE StandaloneDeriving   #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeOperators        #-}
 module Model where
 
 import ClassyPrelude.Yesod

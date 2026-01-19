@@ -1,4 +1,4 @@
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE Rank2Types, TypeOperators #-}
 -- | This module contains tests that should pass for every
 -- storage backend.  These are not intended for end-users of the
 -- @serversession@ library.  However, they are part of the

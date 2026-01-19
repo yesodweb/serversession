@@ -1,3 +1,7 @@
+# 2.0.4
+
+Adjust version bounds of `persistent` to `>= 2.15.0.0 && < 2.18.0.0`.
+
 # 2.0.3
 
 Synchronize deployed version with GitHub commit.

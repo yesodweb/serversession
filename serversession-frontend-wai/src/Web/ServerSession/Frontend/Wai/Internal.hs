@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeOperators #-}
+
 -- | Internal module exposing the guts of the package.  Use at
 -- your own risk.  No API stability guarantees apply.
 module Web.ServerSession.Frontend.Wai.Internal
