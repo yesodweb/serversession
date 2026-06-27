@@ -36,6 +36,19 @@
         (final: prev: {
           project = final.haskell-nix.stackProject' {
             src = stackFileset final.lib;
+            # When haskell.nix rebuilds `unix`, `directory`, or `process` on GHC 9.10+,
+            # it passes `-os-string` by default,
+            # leaving `os-string` as a hidden package and breaking imports.
+            # These packages require `+os-string` to work with the newer `filepath`,
+            # so enable the flag explicitly.
+            # https://github.com/input-output-hk/haskell.nix/issues/2423
+            modules = [
+              {
+                packages.directory.flags.os-string = true;
+                packages.process.flags.os-string = true;
+                packages.unix.flags.os-string = true;
+              }
+            ];
             shell = {
               tools = {
                 haskell-language-server = "latest";
