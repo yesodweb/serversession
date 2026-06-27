@@ -7,6 +7,12 @@ packages:
   - serversession-frontend-yesod
   - examples/serversession-example-yesod-persistent
 resolver: lts-24.46
+# Stackage lts-24.46 still ships hedis-0.15.2.
+# Remove the entries below once stackage bumps hedis to 0.16+
+# tracked at https://github.com/commercialhaskell/stackage/issues/8017
+extra-deps:
+  - hedis-0.16.1
+  - resource-pool-0.5.0.0
 nix:
   packages:
     - zlib

@@ -1,3 +1,7 @@
+# 1.0.6
+
+* bump hedis to 0.16
+
 # 1.0.5
 
 * bump hedis to 0.15
