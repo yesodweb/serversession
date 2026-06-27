@@ -1,17 +1,42 @@
-*~
-*.o
-*.o_p
-*.hi
+# gh repo gitignore view Nix
+
+# Ignore build outputs from performing a nix-build or `nix build` command
+result
+result-*
+
+# Ignore automatically generated direnv output
+.direnv
+
+# Ignore NixOS interactive test driver history
+**/.nixos-test-history
+
+# gh repo gitignore view Haskell
+
 dist
-*.swp
-cabal-dev/
-.hsenv/
+dist-*
+cabal-dev
+*.o
+*.hi
+*.hie
+*.chi
+*.chs.h
+*.dyn_o
+*.dyn_hi
+.hpc
+.hsenv
 .cabal-sandbox/
 cabal.sandbox.config
-/vendor/
-.shelly/
-tarballs/
-\#*#
-.stack-work
-*.sqlite3*
+*.prof
+*.aux
+*.hp
+*.eventlog
+.stack-work/
+cabal.project.local
+cabal.project.local~
+.HTF/
+.ghc.environment.*
+
+# serversession
+
 *.db
+*.sqlite3*

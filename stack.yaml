@@ -6,4 +6,7 @@ packages:
   - serversession-frontend-wai
   - serversession-frontend-yesod
   - examples/serversession-example-yesod-persistent
-resolver: lts-24.11
+resolver: lts-24.46
+nix:
+  packages:
+    - zlib
