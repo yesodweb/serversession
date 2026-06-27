@@ -55,7 +55,6 @@
               };
               buildInputs = with prev; [
                 stack
-                zlib
 
                 (writeScriptBin "haskell-language-server-wrapper" ''
                   #!${stdenv.shell}
