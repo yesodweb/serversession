@@ -3,7 +3,21 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/topics/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: hedis-0.16.1@sha256:3735575ffaaa28a57d04f1e9f10c230ff2be5d28765f697bc38c1f485a4ea254,7945
+    pantry-tree:
+      sha256: fbff82ad4babd24f45b203650d806ae46af4491d69c69bed04d94d4fe64aff43
+      size: 1984
+  original:
+    hackage: hedis-0.16.1
+- completed:
+    hackage: resource-pool-0.5.0.0@sha256:10aa71ad1d064f49a74d6bd52e3b0b1d3836f50cb6d70da4ba054e0475c3060c,1618
+    pantry-tree:
+      sha256: dcc06a8cfdcb437d1a3b66db9e004c6eb44ce03637547245268014d3f5d61dec
+      size: 407
+  original:
+    hackage: resource-pool-0.5.0.0
 snapshots:
 - completed:
     sha256: 2e84de3088a8643c3743210ec31c50b2aeccf5fb085042d2e43e3ef700e7a2cd

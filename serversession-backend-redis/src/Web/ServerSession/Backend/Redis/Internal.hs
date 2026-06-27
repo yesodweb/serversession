@@ -32,6 +32,7 @@ import Control.Monad (void, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.ByteString (ByteString)
 import Data.List (partition)
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Proxy (Proxy(..))
 import Data.Typeable (Typeable)
@@ -43,6 +44,7 @@ import qualified Database.Redis as R
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.HashMap.Strict as HM
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Text.Encoding as TE
 import qualified Data.Time.Clock as TI
 import qualified Data.Time.Clock.POSIX as TP
@@ -220,12 +222,13 @@ timeFormat = "%Y-%m-%dT%H:%M:%S%Q"
 -- | Run the given Redis command in batches of @511*1024@ items.
 -- This is used for @HMSET@ because there's a hard Redis limit of
 -- @1024*1024@ arguments to a command.  The last result is returned.
-batched :: Monad m => ([a] -> m b) -> [a] -> m b
+batched :: Monad m => (NonEmpty a -> m b) -> NonEmpty a -> m b
 batched f xs =
-  let (this, rest) = splitAt (511*1024) xs
-      continue | null rest = return
-               | otherwise = const (batched f rest)
-  in f this >>= continue
+  let (this, rest) = NE.splitAt (511*1024) xs
+      thisNE = NE.fromList this
+  in case NE.nonEmpty rest of
+       Nothing    -> f thisNE
+       Just restNE -> f thisNE >> batched f restNE
 
 
 -- | Get the session for the given session ID.
@@ -241,7 +244,7 @@ deleteSessionImpl sid = do
     Nothing -> return ()
     Just session ->
       transaction $ do
-        r <- R.del [rSessionKey sid]
+        r <- R.del (rSessionKey sid :| [])
         removeSessionFromAuthId sid (sessionAuthId session)
         return (() <$ r)
 
@@ -260,19 +263,19 @@ insertSessionForAuthId = fooSessionBarAuthId R.sadd
 -- | (Internal) Helper for 'removeSessionFromAuthId' and 'insertSessionForAuthId'
 fooSessionBarAuthId
   :: (R.RedisCtx m f, Functor m)
-  => (ByteString -> [ByteString] -> m (f Integer))
+  => (ByteString -> NonEmpty ByteString -> m (f Integer))
   -> SessionId sess
   -> Maybe AuthId
   -> m ()
 fooSessionBarAuthId _   _   Nothing       = return ()
-fooSessionBarAuthId fun sid (Just authId) = void $ fun (rAuthKey authId) [rSessionKey sid]
+fooSessionBarAuthId fun sid (Just authId) = void $ fun (rAuthKey authId) (rSessionKey sid :| [])
 
 
 -- | Delete all sessions of the given auth ID.
 deleteAllSessionsOfAuthIdImpl :: AuthId -> R.Redis ()
 deleteAllSessionsOfAuthIdImpl authId = do
   sessionRefs <- unwrap $ R.smembers (rAuthKey authId)
-  void $ unwrap $ R.del $ rAuthKey authId : sessionRefs
+  void $ unwrap $ R.del (rAuthKey authId :| sessionRefs)
 
 
 -- | Insert a new session.
@@ -286,7 +289,7 @@ insertSessionImpl sto session = do
     Nothing -> do
       transaction $ do
         let sk = rSessionKey sid
-        r <- batched (R.hmset sk) (printSession session)
+        r <- batched (R.hmset sk) (NE.fromList $ printSession session)
         expireSession session sto
         insertSessionForAuthId (sessionKey session) (sessionAuthId session)
         return (() <$ r)
@@ -304,8 +307,8 @@ replaceSessionImpl sto session = do
       transaction $ do
         -- Delete the old session and set the new one.
         let sk = rSessionKey sid
-        _ <- R.del [sk]
-        r <- batched (R.hmset sk) (printSession session)
+        _ <- R.del (sk :| [])
+        r <- batched (R.hmset sk) (NE.fromList $ printSession session)
         expireSession session sto
 
         -- Remove the old auth ID from the map if it has changed.
