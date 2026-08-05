@@ -172,7 +172,7 @@ parseSession sid bss =
       lookup' k = fromMaybe (error err) $ lookup k internalList
         where err = "serversession-backend-redis/parseSession: missing key " ++ show k
       data_ = fromHash p $ map (first removePrefix) externalList
-        where removePrefix bs = let ("data:", key) = B8.splitAt 5 bs in key
+        where removePrefix bs = let (_dataPrefix, key) = B8.splitAt 5 bs in key
               p = Proxy :: Proxy sess
   in Just Session
        { sessionKey        = sid
