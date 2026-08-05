@@ -29,6 +29,7 @@ library
     , cereal                    >= 0.4
     , path-pieces
     , persistent                >= 2.15.0.0 && < 2.18.0.0
+    , semigroupoids             >= 5 && < 6.1
     , tagged                    >= 0.7
     , text
     , time

@@ -27,6 +27,7 @@ import           Web.ServerSession.Core
 
 import qualified Control.Exception                                   as E
 import qualified Data.Aeson                                          as A
+import           Data.Functor.Apply                                  (Apply, WrappedApplicative (..), (<.>))
 import qualified Data.Text                                           as T
 import qualified Database.Persist                                    as P
 import qualified Database.Persist.EntityDef.Internal                 as P (EntityDef (..))
@@ -139,6 +140,12 @@ instance forall sess. P.PersistFieldSql (Decomposed sess) => P.PersistEntity (Pe
       err _ (Right v) = Right v
   fromPersistValues x = Left $ T.pack $ "PersistentSession/fromPersistValues: " ++ show x
 
+  tabulateEntityA f = unwrapApplicative (tabulateSession (WrapApplicative . f))
+
+#if MIN_VERSION_persistent(2,17,0)
+  tabulateEntityApply = tabulateSession
+#endif
+
   persistUniqueToFieldNames _ = error "Degenerate case, should never happen"
   persistUniqueToValues _     = error "Degenerate case, should never happen"
   persistUniqueKeys _         = []
@@ -240,6 +247,24 @@ persistFieldDefPersistentSessionKey =
 -- | Copy-paste from @Database.Persist.TH@.  Who needs lens anyway...
 lensPTH :: Functor f => (s -> a) -> (s -> b -> t) -> (a -> f b) -> s -> f t
 lensPTH sa sbt afb s = fmap (sbt s) (afb $ sa s)
+
+-- | Use Apply to build PersistentSession; used with both Apply and
+-- `Applicative f => Apply (WrapApplicative f)`.
+tabulateSession
+  :: forall sess f
+   . (P.PersistFieldSql (Decomposed sess), Apply f)
+  => (forall a. EntityField (PersistentSession sess) a -> f a)
+  -> f (P.Entity (PersistentSession sess))
+tabulateSession f =
+  P.Entity
+    <$> f PersistentSessionId
+    <.> ( PersistentSession
+            <$> f PersistentSessionKey
+            <.> f PersistentSessionAuthId
+            <.> f PersistentSessionSession
+            <.> f PersistentSessionCreatedAt
+            <.> f PersistentSessionAccessedAt
+        )
 
 
 instance A.ToJSON (Decomposed sess) => A.ToJSON (PersistentSession sess) where
