@@ -1,5 +1,4 @@
 {-# LANGUAGE Rank2Types, TypeOperators #-}
-{-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
 -- | This module contains tests that should pass for every
 -- storage backend.  These are not intended for end-users of the
 -- @serversession@ library.  However, they are part of the
