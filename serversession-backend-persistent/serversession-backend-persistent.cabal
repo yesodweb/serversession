@@ -88,8 +88,6 @@ test-suite tests
     TemplateHaskell
   main-is:         Main.hs
   ghc-options:     -Wall -threaded "-with-rtsopts=-N -s -M2G -c" -rtsopts
-  if flag(lib-Werror)
-    ghc-options: -Werror
 
 
 

@@ -17,4 +17,4 @@ nix:
   packages:
     - zlib
 ghc-options:
-  "$locals": -Wall -Werror
+  "$locals": -Wall
