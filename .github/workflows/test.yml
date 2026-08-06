@@ -20,7 +20,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession/serversession.cabal') }}
             ${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
-      - run: stack test serversession:test:tests
+      - run: stack test serversession:test:tests --flag serversession:lib-Werror
   backend-acid-state-test:
     runs-on: ubuntu-latest
     steps:
@@ -37,7 +37,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-backend-acid-state/serversession-backend-acid-state.cabal') }}
             ${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
-      - run: stack test serversession-backend-acid-state:test:tests
+      - run: stack test serversession-backend-acid-state:test:tests --flag serversession-backend-acid-state:lib-Werror
   backend-persistent-test:
     runs-on: ubuntu-latest
     services:
@@ -63,7 +63,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-backend-persistent/serversession-backend-persistent.cabal') }}
             ${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
-      - run: stack test serversession-backend-persistent:test:tests
+      - run: stack test serversession-backend-persistent:test:tests --flag serversession-backend-persistent:lib-Werror
   backend-redis-test:
     runs-on: ubuntu-latest
     services:
@@ -85,7 +85,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-backend-redis/serversession-backend-redis.cabal') }}
             ${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
-      - run: stack test serversession-backend-redis:test:tests
+      - run: stack test serversession-backend-redis:test:tests --flag serversession-backend-redis:lib-Werror
   frontend-wai-test:
     runs-on: ubuntu-latest
     steps:
@@ -102,7 +102,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-frontend-wai/serversession-frontend-wai.cabal') }}
             ${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
-      - run: stack test serversession-frontend-wai:lib # no test
+      - run: stack test serversession-frontend-wai:lib --flag serversession-frontend-wai:lib-Werror # no test
   frontend-yesod-test:
     runs-on: ubuntu-latest
     steps:
@@ -119,7 +119,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('serversession-frontend-yesod/serversession-frontend-yesod.cabal') }}
             ${{ runner.os }}-${{ hashFiles('stack.yaml.lock') }}-
-      - run: stack test serversession-frontend-yesod:lib # no test
+      - run: stack test serversession-frontend-yesod:lib --flag serversession-frontend-yesod:lib-Werror # no test
   example-yesod-test:
     runs-on: ubuntu-latest
     steps:
