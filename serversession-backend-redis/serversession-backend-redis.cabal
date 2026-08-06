@@ -74,8 +74,6 @@ test-suite tests
     , serversession-backend-redis
   main-is:         Main.hs
   ghc-options:     -Wall -threaded "-with-rtsopts=-N -s -M1G -c" -rtsopts
-  if flag(lib-Werror)
-    ghc-options: -Werror
 
 
 
